@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables & secrets (CRÍTICO: nunca subir .env a GitHub)
+.env
+*.env
+backend/.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+frontend/dist/
+.angular/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Prisma generated & temp files
+*.tmp*
+query_engine*
+
+# OS files
+.DS_Store
+Thumbs.db

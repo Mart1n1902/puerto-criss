@@ -1,0 +1,39 @@
+import * as svc from '../services/reportes.service.js';
+import * as iaSvc from '../services/ia.service.js';
+import { ok, fail } from '../utils/response.util.js';
+
+export const getDashboard = async (req, res, next) => {
+  try { ok(res, await svc.getDashboard()); } catch (err) { next(err); }
+};
+
+export const getKpis = async (req, res, next) => {
+  try { ok(res, await svc.getKpis()); } catch (err) { next(err); }
+};
+
+export const getVentasPorDia = async (req, res, next) => {
+  try { ok(res, await svc.getVentasPorDia(+req.query.dias || 7)); } catch (err) { next(err); }
+};
+
+export const getComparativaSemanal = async (req, res, next) => {
+  try { ok(res, await svc.getComparativaSemanal(+req.query.semanas || 4)); } catch (err) { next(err); }
+};
+
+export const getGastosPorCategoria = async (req, res, next) => {
+  try {
+    const { desde, hasta } = req.query;
+    if (!desde || !hasta) return fail(res, 'desde y hasta son requeridos');
+    ok(res, await svc.getGastosPorCategoria(desde, hasta));
+  } catch (err) { next(err); }
+};
+
+export const getResumenIA = async (req, res, next) => {
+  try {
+    const [kpis, dashboard, comparativa] = await Promise.all([
+      svc.getKpis(),
+      svc.getDashboard(),
+      svc.getComparativaSemanal(2),
+    ]);
+    const resumen = await iaSvc.generarResumen(kpis, dashboard.top_productos, comparativa);
+    ok(res, { resumen });
+  } catch (err) { next(err); }
+};

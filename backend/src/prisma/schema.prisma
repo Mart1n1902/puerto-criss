@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Usuario {
+  id            Int            @id @default(autoincrement())
+  nombre        String
+  email         String         @unique
+  password      String
+  rol           Rol
+  activo        Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  sesiones_caja SesionCaja[]
+  pedidos       Pedido[]
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  telefono  String?
+  documento String?
+  createdAt DateTime @default(now()) @map("created_at")
+  pedidos   Pedido[]
+
+  @@map("clientes")
+}
+
+model Mesa {
+  id     Int         @id @default(autoincrement())
+  numero String      @unique
+  estado EstadoMesa  @default(LIBRE)
+  pedidos Pedido[]
+
+  @@map("mesas")
+}
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String
+  activo    Boolean    @default(true)
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Producto {
+  id            Int             @id @default(autoincrement())
+  categoria_id  Int
+  nombre        String
+  descripcion   String?
+  precio_actual Decimal         @db.Decimal(10, 2)
+  imagen_url    String?
+  disponible    Boolean         @default(true)
+  categoria     Categoria       @relation(fields: [categoria_id], references: [id])
+  detalles      DetallePedido[]
+
+  @@map("productos")
+}
+
+model SesionCaja {
+  id             Int              @id @default(autoincrement())
+  usuario_id     Int
+  fecha_apertura DateTime         @default(now())
+  fecha_cierre   DateTime?
+  monto_inicial  Decimal          @db.Decimal(10, 2)
+  monto_final    Decimal?         @db.Decimal(10, 2)
+  estado         EstadoSesion     @default(ABIERTA)
+  usuario        Usuario          @relation(fields: [usuario_id], references: [id])
+  pedidos        Pedido[]
+  movimientos    MovimientoCaja[]
+
+  @@map("sesiones_caja")
+}
+
+model Pedido {
+  id             Int             @id @default(autoincrement())
+  codigo         String?         @unique
+  sesion_caja_id Int?
+  usuario_id     Int?
+  cliente_id     Int?
+  mesa_id        Int?
+  tipo           TipoPedido
+  estado         EstadoPedido    @default(PENDIENTE)
+  direccion      String?
+  referencia     String?
+  notas          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  sesion_caja    SesionCaja?     @relation(fields: [sesion_caja_id], references: [id])
+  usuario        Usuario?        @relation(fields: [usuario_id], references: [id])
+  cliente        Cliente?        @relation(fields: [cliente_id], references: [id])
+  mesa           Mesa?           @relation(fields: [mesa_id], references: [id])
+  detalles       DetallePedido[]
+  pagos          Pago[]
+
+  @@map("pedidos")
+}
+
+model DetallePedido {
+  pedido_id      Int
+  producto_id    Int
+  cantidad       Int
+  precio_unitario Decimal  @db.Decimal(10, 2)
+  pedido         Pedido   @relation(fields: [pedido_id], references: [id])
+  producto       Producto @relation(fields: [producto_id], references: [id])
+
+  @@id([pedido_id, producto_id])
+  @@map("detalle_pedido")
+}
+
+model Pago {
+  id        Int       @id @default(autoincrement())
+  pedido_id Int
+  metodo    MetodoPago
+  monto     Decimal   @db.Decimal(10, 2)
+  createdAt DateTime  @default(now()) @map("created_at")
+  pedido    Pedido    @relation(fields: [pedido_id], references: [id])
+
+  @@map("pagos")
+}
+
+model CategoriaMovimiento {
+  id          Int              @id @default(autoincrement())
+  nombre      String
+  tipo        TipoMovimiento
+  movimientos MovimientoCaja[]
+
+  @@map("categorias_movimiento")
+}
+
+model MovimientoCaja {
+  id                      Int                 @id @default(autoincrement())
+  sesion_caja_id          Int
+  categoria_movimiento_id Int
+  monto                   Decimal             @db.Decimal(10, 2)
+  descripcion             String?
+  createdAt               DateTime            @default(now()) @map("created_at")
+  sesion_caja             SesionCaja          @relation(fields: [sesion_caja_id], references: [id])
+  categoria_movimiento    CategoriaMovimiento @relation(fields: [categoria_movimiento_id], references: [id])
+
+  @@map("movimientos_caja")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Rol {
+  ADMIN
+  COCINA
+  MOZO
+}
+
+enum EstadoMesa {
+  LIBRE
+  OCUPADA
+  RESERVADA
+}
+
+enum TipoPedido {
+  DELIVERY
+  RECOJO
+  MESA
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  PREPARANDO
+  LISTO
+  ENTREGADO
+  CANCELADO
+}
+
+enum MetodoPago {
+  EFECTIVO
+  YAPE
+  TARJETA
+}
+
+enum EstadoSesion {
+  ABIERTA
+  CERRADA
+}
+
+enum TipoMovimiento {
+  INGRESO
+  EGRESO
+}
