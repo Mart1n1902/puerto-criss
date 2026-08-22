@@ -14,14 +14,13 @@ import reportesRoutes from './routes/reportes.routes.js';
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:4200',
-  'http://localhost:4201',
-  /^http:\/\/localhost:\d+$/,
-].filter(Boolean);
+// Permitir peticiones CORS desde cualquier frontend (Netlify, Vercel, localhost)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
