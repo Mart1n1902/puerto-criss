@@ -212,3 +212,57 @@ export const getGastosPorCategoria = async (desde, hasta) => {
 
   return Object.values(agrupado).sort((a, b) => b.total - a.total);
 };
+
+// ─── Exportación de Ventas a Formato CSV ──────────────────────────────────────
+
+export const exportarVentasCSV = async ({ desde, hasta } = {}) => {
+  const where = { estado: { not: 'CANCELADO' } };
+  if (desde || hasta) {
+    where.createdAt = {};
+    if (desde) where.createdAt.gte = new Date(desde);
+    if (hasta) {
+      const h = new Date(hasta);
+      h.setHours(23, 59, 59, 999);
+      where.createdAt.lte = h;
+    }
+  }
+
+  const pedidos = await prisma.pedido.findMany({
+    where,
+    include: {
+      cliente: true,
+      mesa: true,
+      detalles: { include: { producto: true } },
+      pagos: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const header = ['ID Pedido', 'Codigo', 'Fecha y Hora', 'Tipo', 'Cliente', 'Telefono', 'Mesa / Direccion', 'Productos', 'Total (S/)', 'Estado', 'Metodo de Pago'];
+
+  const rows = pedidos.map((p) => {
+    const fecha = new Date(p.createdAt).toLocaleString('es-PE', { timeZone: 'America/Lima' });
+    const productosStr = p.detalles.map((d) => `${d.cantidad}x ${d.producto.nombre}`).join(' | ');
+    const total = p.detalles.reduce((sum, d) => sum + d.cantidad * parseFloat(d.precio_unitario), 0).toFixed(2);
+    const destino = p.tipo === 'MESA' ? `Mesa ${p.mesa?.numero || '-'}` : (p.direccion || '-');
+    const metodoPago = p.pagos.map((pg) => pg.metodo).join(', ') || 'Pendiente';
+
+    return [
+      p.id,
+      p.codigo || '-',
+      `"${fecha}"`,
+      p.tipo,
+      `"${(p.cliente?.nombre || 'Anonimo').replace(/"/g, '""')}"`,
+      `"${p.cliente?.telefono || '-'}"`,
+      `"${destino.replace(/"/g, '""')}"`,
+      `"${productosStr.replace(/"/g, '""')}"`,
+      total,
+      p.estado,
+      `"${metodoPago}"`,
+    ].join(',');
+  });
+
+  // UTF-8 BOM para soporte de tildes y caracteres en Microsoft Excel
+  return '\uFEFF' + [header.join(','), ...rows].join('\n');
+};
+

@@ -61,7 +61,16 @@ export interface Mesa {
   estado: EstadoMesa;
 }
 
+export interface ItemPersonalizacion {
+  picante?: string;
+  guarnicion?: string;
+  notaItem?: string;
+}
+
 export interface ItemCarrito {
+  idItem?: string;
   producto: Producto;
   cantidad: number;
+  personalizacion?: ItemPersonalizacion;
 }
+

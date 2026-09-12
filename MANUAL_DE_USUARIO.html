@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario — Puerto Criss</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-light: #e0f2fe;
+      --accent: #0f172a;
+      --accent-gold: #f59e0b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* BARRA SUPERIOR FLOTANTE */
+    .top-actions {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .top-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .top-brand span {
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-print {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #ffffff;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .btn-print:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6);
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+    }
+
+    /* CONTENEDOR PRINCIPAL */
+    .container {
+      max-width: 900px;
+      margin: 40px auto 80px;
+      padding: 0 24px;
+    }
+
+    /* PORTADA DEL DOCUMENTO */
+    .cover-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 48px 40px;
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .cover-card::after {
+      content: '🐟';
+      position: absolute;
+      right: 30px;
+      bottom: -20px;
+      font-size: 130px;
+      opacity: 0.08;
+      pointer-events: none;
+    }
+
+    .badge-system {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+
+    .cover-card h1 {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+
+    .cover-card p.subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      max-width: 650px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .meta-item {
+      font-size: 12px;
+    }
+
+    .meta-item .label {
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    .meta-item .value {
+      color: #f1f5f9;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    /* TABLA DE CONTENIDO */
+    .toc-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+
+    .toc-card h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 10px 24px;
+    }
+
+    .toc-list a {
+      color: #475569;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.15s ease;
+      padding: 4px 0;
+    }
+
+    .toc-list a:hover {
+      color: var(--primary);
+    }
+
+    /* SECCIONES Y CONTENIDO */
+    .section-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 36px;
+      margin-bottom: 32px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+
+    .section-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .section-header h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 24px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    p {
+      color: #475569;
+      margin-bottom: 14px;
+      font-size: 14.5px;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 18px;
+      color: #475569;
+    }
+
+    li {
+      margin-bottom: 8px;
+      font-size: 14.5px;
+    }
+
+    /* TABLAS */
+    .table-container {
+      overflow-x: auto;
+      margin: 20px 0;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 700;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 11.5px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #fbfcfe;
+    }
+
+    /* ALERTS Y CALLOUTS */
+    .alert-box {
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      display: flex;
+      gap: 14px;
+      font-size: 14px;
+    }
+
+    .alert-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+
+    .alert-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    /* TARJETAS DE CARACTERÍSTICAS (GRID) */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .feature-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .feature-box .f-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feature-box .f-desc {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.45;
+      margin-bottom: 0;
+    }
+
+    /* PASOS FLUJO */
+    .step-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 14px 18px;
+      border-radius: 14px;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-text strong {
+      display: block;
+      color: var(--accent);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .step-text p {
+      font-size: 13px;
+      margin-bottom: 0;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 30px 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ESTILOS DE IMPRESIÓN / PDF */
+    @media print {
+      .top-actions {
+        display: none !important;
+      }
+
+      body {
+        background: white;
+        color: #000;
+        font-size: 12pt;
+      }
+
+      .container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .cover-card {
+        background: #0f172a !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        page-break-after: avoid;
+        border-radius: 16px;
+        padding: 30px;
+      }
+
+      .section-card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        padding: 24px;
+      }
+
+      .btn-print {
+        display: none !important;
+      }
+
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA DE ACCIONES SUPERIOR -->
+  <div class="top-actions">
+    <div class="top-brand">
+      <span>🌊 PUERTO CRISS</span>
+      <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">· Manual de Usuario</span>
+    </div>
+    <button class="btn-print" onclick="window.print()">
+      <span>🖨️</span> Descargar en PDF / Imprimir
+    </button>
+  </div>
+
+  <div class="container">
+
+    <!-- PORTADA / HERO -->
+    <div class="cover-card">
+      <div class="badge-system">⭐ Documentación Oficial</div>
+      <h1>Manual de Usuario</h1>
+      <p class="subtitle">Guía completa de operación, perfiles de usuario, flujo de pedidos en tiempo real y administración del restaurante.</p>
+      
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="label">Sistema</div>
+          <div class="value">Puerto Criss v1.0</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Especialidad</div>
+          <div class="value">Cevichería & Comida Marina</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Destinatario</div>
+          <div class="value">Equipo de Trabajo & Clientes</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">Fecha</div>
+          <div class="value">Agosto 2026</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLA DE CONTENIDO -->
+    <div class="toc-card">
+      <h2>📋 Índice General</h2>
+      <div class="toc-list">
+        <a href="#sec-1">1. Introducción y Visión General</a>
+        <a href="#sec-2">2. Acceso y Roles de Usuario</a>
+        <a href="#sec-3">3. Módulo Web de Clientes & Delivery</a>
+        <a href="#sec-4">4. Módulo de Mozos & Atención en Salón</a>
+        <a href="#sec-5">5. Módulo de Cocina (Pantalla KDS)</a>
+        <a href="#sec-6">6. Administración, Caja & Finanzas</a>
+        <a href="#sec-7">7. Preguntas Frecuentes</a>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1 -->
+    <div class="section-card" id="sec-1">
+      <div class="section-header">
+        <div class="section-icon">🌐</div>
+        <h2>1. Introducción y Visión General</h2>
+      </div>
+      <p><strong>Puerto Criss</strong> es una plataforma integral diseñada para optimizar todas las operaciones de un restaurante marino, conectando en tiempo real a los clientes, mozos, cocineros y administradores.</p>
+      
+      <div class="feature-grid">
+        <div class="feature-box">
+          <div class="f-title">⚡ Tiempo Real Inmediato</div>
+          <div class="f-desc">Conexión por WebSockets: las comandas viajan al instante a cocina sin demoras.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">🔔 Timbre Sonoro KDS</div>
+          <div class="f-desc">Alerta auditiva en cocina para no perder ningún pedido entrante.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">💰 Control de Caja Diario</div>
+          <div class="f-desc">Arqueo exacto de gaveta con cálculo de sencillo, ventas y egresos.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">📱 100% Responsivo</div>
+          <div class="f-desc">Uso cómodo desde celulares, tablets de salón y ordenadores de caja.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2 -->
+    <div class="section-card" id="sec-2">
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <h2>2. Acceso y Roles de Usuario</h2>
+      </div>
+      <p>El acceso al sistema se realiza a través de la ruta <code>/login</code>. Cada miembro del personal cuenta con una interfaz adaptada a sus funciones:</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Rol</th>
+              <th>Correo por Defecto</th>
+              <th>Contraseña</th>
+              <th>Módulo Asignado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Administrador</strong></td>
+              <td><code>admin@puertocris.com</code></td>
+              <td><code>123456</code></td>
+              <td>Panel Gerencial (<code>/admin</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>Cocina</strong></td>
+              <td><code>cocina@puertocris.com</code></td>
+              <td><code>123456</code></td>
+              <td>Pantalla de Comandas (<code>/cocina</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>Mozo</strong></td>
+              <td><code>mozo@puertocris.com</code></td>
+              <td><code>123456</code></td>
+              <td>Mapa de Mesas (<code>/mozo/mesas</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>Público</strong></td>
+              <td><em>Acceso libre</em></td>
+              <td>—</td>
+              <td>Carta y Carrito (<code>/menu</code>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert-box alert-warning">
+        <div class="alert-icon">⚠️</div>
+        <div><strong>Recomendación:</strong> Se aconseja actualizar las contraseñas predeterminadas una vez puesto en marcha el sistema en producción.</div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3 -->
+    <div class="section-card" id="sec-3">
+      <div class="section-header">
+        <div class="section-icon">🛍️</div>
+        <h2>3. Módulo Web de Clientes & Delivery</h2>
+      </div>
+      <p>Permite a los comensales consultar la carta desde cualquier lugar y solicitar pedidos de forma intuitiva.</p>
+
+      <div class="step-flow">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <strong>Exploración del Menú (<code>/menu</code>)</strong>
+            <p>Filtrado por categorías (Ceviches, Chicharrones, Chaufas, Bebidas) con precios actualizados y etiquetas de disponibilidad en vivo.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <strong>Carrito de Compras y Modalidad (<code>/carrito</code>)</strong>
+            <p>El cliente elige entre <strong>🛵 Delivery</strong> (ingresando dirección y referencia) o <strong>🛍️ Recojo en Local</strong>.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <strong>Datos y Método de Pago</strong>
+            <p>Registro de nombre, número de celular, notas especiales (ej. <em>"Sin ají"</em>) y método de pago preferido (Efectivo, Yape o Tarjeta).</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-text">
+            <strong>Seguimiento en Vivo (<code>/pedido/:id</code>)</strong>
+            <p>Se genera un código único de orden y una barra interactiva que muestra si está <em>Pendiente, Preparando, Listo o Entregado</em>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 4 -->
+    <div class="section-card" id="sec-4">
+      <div class="section-header">
+        <div class="section-icon">🤵</div>
+        <h2>4. Módulo de Mozos & Atención en Salón</h2>
+      </div>
+      <p>Diseñado para agilizar la rotación de comensales en el salón del restaurante mediante tablets o smartphones.</p>
+
+      <h3>Mapa de Mesas</h3>
+      <ul>
+        <li>🟢 <strong>Libre:</strong> Mesa desocupada lista para nuevos clientes.</li>
+        <li>🔴 <strong>Ocupada:</strong> Mesa con pedido en curso o comensales disfrutando de sus platos.</li>
+        <li>🟡 <strong>Reservada:</strong> Mesa apartada para un cliente con reserva previa.</li>
+      </ul>
+
+      <h3>Flujo de Toma de Comanda:</h3>
+      <ol>
+        <li>El mozo pulsa sobre la mesa deseada (ej. <strong>Mesa 3</strong>).</li>
+        <li>Añade los platos y bebidas seleccionados con las observaciones requeridas.</li>
+        <li>Presiona <strong>"Enviar Comanda a Cocina"</strong>. La orden viaja automáticamente por WebSockets a los cocineros y la mesa cambia a estado Ocupada.</li>
+        <li>Una vez liquidada la cuenta en caja, la mesa queda libre para una nueva atención.</li>
+      </ol>
+    </div>
+
+    <!-- SECCIÓN 5 -->
+    <div class="section-card" id="sec-5">
+      <div class="section-header">
+        <div class="section-icon">👨‍🍳</div>
+        <h2>5. Módulo de Cocina (Pantalla KDS)</h2>
+      </div>
+      <p>Pantalla táctil de alto contraste diseñada para la estación de preparación (<code>/cocina</code>).</p>
+
+      <div class="alert-box alert-info">
+        <div class="alert-icon">🔊</div>
+        <div>
+          <strong>Timbre Sonoro de Comandas:</strong>
+          Al abrir el módulo por primera vez, toque el botón <code>🔊 Activar Timbre</code> para permitir que el navegador emita una alerta sonora cada vez que ingrese una orden.
+        </div>
+      </div>
+
+      <h3>Organización de la Pantalla:</h3>
+      <ul>
+        <li><strong>Columna Amarilla (Pendientes de Cocinar):</strong> Órdenes recién ingresadas. Al empezar a prepararlas, el chef presiona <strong>"Empezar a Preparar"</strong>.</li>
+        <li><strong>Columna Azul (En Preparación):</strong> Platos en proceso. Al terminarlos, se presiona <strong>"¡Plato Listo!"</strong> para avisar al mozo o empaquetador.</li>
+        <li><strong>Control de Stock / Platos del Día:</strong> Botón directo para marcar platos como <em>Agotados</em> en tiempo real si se terminan insumos clave.</li>
+      </ul>
+    </div>
+
+    <!-- SECCIÓN 6 -->
+    <div class="section-card" id="sec-6">
+      <div class="section-header">
+        <div class="section-icon">💼</div>
+        <h2>6. Administración, Caja & Finanzas</h2>
+      </div>
+      <p>Panel integral para administradores y cajeros (<code>/admin</code>):</p>
+
+      <div class="feature-grid">
+        <div class="feature-box">
+          <div class="f-title">📊 Dashboard</div>
+          <div class="f-desc">Visualice ventas totales del día, ticket promedio y pedidos activos en tiempo real.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">🧾 Pedidos y Cobros</div>
+          <div class="f-desc">Gestione el estado de cada orden y registre pagos en Efectivo, Yape/Plin o Tarjeta.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">💰 Cuadre de Caja</div>
+          <div class="f-desc">Apertura con sencillo, arqueo en vivo y emisión de comprobantes de cierre de turno.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">📉 Control de Gastos</div>
+          <div class="f-desc">Registro detallado de salidas de dinero (Insumos, Servicios, Personal).</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">🍲 Catálogo de Menú</div>
+          <div class="f-desc">Creación y edición de platos, precios, categorías e imágenes de presentación.</div>
+        </div>
+        <div class="feature-box">
+          <div class="f-title">📈 Reportes Financieros</div>
+          <div class="f-desc">Estadísticas por rango de fecha, platos más vendidos y balance neto de ganancias.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 7 -->
+    <div class="section-card" id="sec-7">
+      <div class="section-header">
+        <div class="section-icon">❓</div>
+        <h2>7. Preguntas Frecuentes y Ayuda</h2>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <p style="font-weight: 700; color: var(--accent); margin-bottom: 4px;">❓ ¿Por qué no suena el timbre en cocina al llegar un pedido?</p>
+        <p style="color: #64748b; font-size: 13.5px;">Los navegadores bloquean el audio automático hasta que el usuario interactúa. Solo debe hacer un click en cualquier lugar de la pantalla o presionar el botón "Activar Timbre".</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <p style="font-weight: 700; color: var(--accent); margin-bottom: 4px;">❓ ¿Cómo se agrega un pedido adicional a una mesa que ya está consumiendo?</p>
+        <p style="color: #64748b; font-size: 13.5px;">El mozo vuelve a ingresar a la mesa ocupada, añade los nuevos platos y confirma el envío; la cuenta total se acumula automáticamente.</p>
+      </div>
+
+      <div>
+        <p style="font-weight: 700; color: var(--accent); margin-bottom: 4px;">❓ ¿Cómo emitir el resumen de caja del día?</p>
+        <p style="color: #64748b; font-size: 13.5px;">En el módulo de Caja, presione "Comprobante / Ticket" para visualizar e imprimir el reporte detallado con el desglose de ingresos, egresos y ventas por método de pago.</p>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <p><strong>Puerto Criss — Sistema de Gestión Gastronómica</strong></p>
+      <p>Documento generado para distribución y capacitación del personal.</p>
+    </footer>
+
+  </div>
+
+</body>
+</html>

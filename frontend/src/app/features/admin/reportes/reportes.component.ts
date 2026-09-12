@@ -30,13 +30,20 @@ Chart.register(...registerables);
             {{ loadingIA() ? '⏳ Analizando...' : '🤖 Resumen con IA' }}
           </button>
           <button
+            (click)="descargarVentasDetalladasCSV()"
+            class="flex-1 sm:flex-none bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+          >
+            📊 Ventas Detalladas (CSV)
+          </button>
+          <button
             (click)="exportarExcel()"
             class="flex-1 sm:flex-none bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
-            📥 Descargar Excel
+            📥 Resumen (Excel)
           </button>
         </div>
       </div>
+
 
       <!-- Resumen IA -->
       @if (resumenIA()) {
@@ -419,6 +426,15 @@ export class ReportesComponent implements OnInit, AfterViewInit {
     saveAs(new Blob([buf]), `reporte-puerto-criss-${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
+  descargarVentasDetalladasCSV() {
+    this.reportesService.exportarCSV(this.filtro.desde, this.filtro.hasta).subscribe({
+      next: (blob) => {
+        saveAs(blob, `pedidos-detallados-puerto-criss-${new Date().toISOString().split('T')[0]}.csv`);
+      },
+      error: () => {},
+    });
+  }
+
   inicioMes(): string {
     const d = new Date();
     d.setDate(1);
@@ -437,3 +453,4 @@ export class ReportesComponent implements OnInit, AfterViewInit {
     });
   }
 }
+

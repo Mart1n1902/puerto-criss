@@ -156,6 +156,9 @@ export class PedidoEstadoComponent implements OnInit, OnDestroy {
     this.parametroActual = this.route.snapshot.paramMap.get('id')!;
     this.cargar(this.parametroActual);
 
+    // Unirse a la sala privada del pedido para escuchar eventos en vivo de forma segura
+    this.socketService.unirseAPedido(this.parametroActual);
+
     // Escuchar cambios de estado en vivo vía WebSocket
     this.sub.add(
       this.socketService.cambioEstado$.subscribe((pedidoActualizado) => {
@@ -176,12 +179,29 @@ export class PedidoEstadoComponent implements OnInit, OnDestroy {
   }
 
   cargar(param: string | number) {
-    this.pedidosService.getById(param).subscribe({
+    const isCode = typeof param === 'string' && (param.includes('PC-') || isNaN(Number(param)));
+    const query$ = isCode
+      ? this.pedidosService.getByCodigo(String(param))
+      : this.pedidosService.getByCodigo(String(param));
+
+    query$.subscribe({
       next: ({ data }) => {
         this.pedido.set(data);
+        if (data.codigo) {
+          this.socketService.unirseAPedido(data.codigo);
+        }
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        // Intento fallback si es usuario autenticado
+        this.pedidosService.getById(param).subscribe({
+          next: ({ data }) => {
+            this.pedido.set(data);
+            this.loading.set(false);
+          },
+          error: () => this.loading.set(false),
+        });
+      },
     });
   }
 
@@ -215,9 +235,10 @@ export class PedidoEstadoComponent implements OnInit, OnDestroy {
     if (p.codigo) extra += `\n🔑 Clave de seguimiento: *${p.codigo}*`;
     if (p.mesa) extra += `\n🪑 Mesa: ${p.mesa.numero}`;
     if (p.direccion) extra += `\n📍 Dirección: ${p.direccion}${p.referencia ? ` (Ref: ${p.referencia})` : ''}`;
-    if (p.notas) extra += `\n📝 Notas: ${p.notas}`;
+    if (p.notas) extra += `\n📝 Notas y personalización:\n${p.notas}`;
 
     const msg = `🦐 *Pedido #${p.id} ${p.codigo ? `(${p.codigo})` : ''} - Puerto Criss*\n👤 ${p.cliente?.nombre || 'Cliente'}\n${extra}\n\n${items}\n\n💰 Total: S/ ${this.total().toFixed(2)}`;
     return `https://wa.me/?text=${encodeURIComponent(msg)}`;
   }
 }
+

@@ -150,32 +150,44 @@ import { Subscription } from 'rxjs';
                 </div>
 
                 <!-- Acciones de la mesa -->
-                <div class="pt-3 border-t border-slate-700/50 flex items-center gap-2">
-                  <span class="text-xs text-slate-400 font-medium mr-1">Cambiar a:</span>
-                  @if (mesa.estado !== 'LIBRE') {
+                <div class="pt-3 border-t border-slate-700/50 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-slate-400 font-medium">Cambiar estado:</span>
                     <button
-                      (click)="cambiarEstadoMesa(mesa, 'LIBRE')"
-                      class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-green-500/30"
+                      (click)="abrirModalQR(mesa)"
+                      class="text-xs bg-slate-700 hover:bg-slate-600 text-cyan-300 font-bold px-2.5 py-1 rounded-lg border border-slate-600 flex items-center gap-1"
+                      title="Ver enlace QR de la mesa"
                     >
-                      Libre
+                      <span>📲</span> QR Mesa
                     </button>
-                  }
-                  @if (mesa.estado !== 'OCUPADA') {
-                    <button
-                      (click)="cambiarEstadoMesa(mesa, 'OCUPADA')"
-                      class="flex-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-orange-500/30"
-                    >
-                      Ocupada
-                    </button>
-                  }
-                  @if (mesa.estado !== 'RESERVADA') {
-                    <button
-                      (click)="cambiarEstadoMesa(mesa, 'RESERVADA')"
-                      class="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-purple-500/30"
-                    >
-                      Reservada
-                    </button>
-                  }
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    @if (mesa.estado !== 'LIBRE') {
+                      <button
+                        (click)="cambiarEstadoMesa(mesa, 'LIBRE')"
+                        class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-green-500/30"
+                      >
+                        Libre
+                      </button>
+                    }
+                    @if (mesa.estado !== 'OCUPADA') {
+                      <button
+                        (click)="cambiarEstadoMesa(mesa, 'OCUPADA')"
+                        class="flex-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-orange-500/30"
+                      >
+                        Ocupada
+                      </button>
+                    }
+                    @if (mesa.estado !== 'RESERVADA') {
+                      <button
+                        (click)="cambiarEstadoMesa(mesa, 'RESERVADA')"
+                        class="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-purple-500/30"
+                      >
+                        Reservada
+                      </button>
+                    }
+                  </div>
                 </div>
 
               </div>
@@ -185,6 +197,41 @@ import { Subscription } from 'rxjs';
       </div>
 
     </div>
+
+    <!-- Modal Enlace QR de Mesa -->
+    @if (mesaQRSeleccionada()) {
+      <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 border border-slate-700 text-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-4 text-center">
+          <div class="w-16 h-16 bg-cyan-500/20 text-cyan-400 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-cyan-500/30">
+            📲
+          </div>
+          <div>
+            <h2 class="text-xl font-black text-white">Mesa {{ mesaQRSeleccionada()!.numero }}</h2>
+            <p class="text-slate-400 text-xs mt-1">Enlace directo para autopedido desde la mesa</p>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-left">
+            <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Enlace del menú con mesa asignada:</label>
+            <p class="font-mono text-xs text-cyan-300 break-all select-all">{{ getUrlMesa(mesaQRSeleccionada()!.numero) }}</p>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              (click)="copiarEnlaceMesa(mesaQRSeleccionada()!.numero)"
+              class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-2.5 rounded-xl transition-colors text-xs flex items-center justify-center gap-1.5 shadow-md"
+            >
+              <span>{{ qrCopiado() ? '✅ Copiado' : '📋 Copiar Enlace' }}</span>
+            </button>
+            <button
+              (click)="mesaQRSeleccionada.set(null)"
+              class="border border-slate-700 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-semibold"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- Modal Crear Mesa -->
     @if (modalNuevaMesa()) {
@@ -234,10 +281,14 @@ export class MesasComponent implements OnInit, OnDestroy {
   modalNuevaMesa = signal(false);
   nuevaMesaNombre = '';
 
+  mesaQRSeleccionada = signal<Mesa | null>(null);
+  qrCopiado = signal(false);
+
   private sub = new Subscription();
   private reloj: any;
 
   ngOnInit() {
+    this.socketService.unirseAStaff();
     this.cargar();
 
     // Sockets en vivo para mozos
@@ -325,4 +376,23 @@ export class MesasComponent implements OnInit, OnDestroy {
       },
     });
   }
+
+  abrirModalQR(mesa: Mesa) {
+    this.mesaQRSeleccionada.set(mesa);
+    this.qrCopiado.set(false);
+  }
+
+  getUrlMesa(numero: string): string {
+    const origin = window.location.origin;
+    return `${origin}/menu?mesa=${encodeURIComponent(numero)}`;
+  }
+
+  copiarEnlaceMesa(numero: string) {
+    const url = this.getUrlMesa(numero);
+    navigator.clipboard.writeText(url).then(() => {
+      this.qrCopiado.set(true);
+      setTimeout(() => this.qrCopiado.set(false), 2500);
+    });
+  }
 }
+

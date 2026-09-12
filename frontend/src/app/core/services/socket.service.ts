@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
-import { Observable, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Pedido, Producto } from '../models/models';
 
@@ -19,7 +19,6 @@ export class SocketService {
   productoActualizado$ = this.productoActualizadoSubject.asObservable();
 
   constructor() {
-    // Extraer URL base del backend (ej: http://localhost:3000)
     const socketUrl = environment.apiUrl.replace(/\/api\/?$/, '');
     this.socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -28,6 +27,7 @@ export class SocketService {
 
     this.socket.on('connect', () => {
       console.log('⚡ Conectado a WebSockets en tiempo real:', this.socket.id);
+      this.unirseAStaff();
     });
 
     this.socket.on('pedido:nuevo', (pedido: Pedido) => {
@@ -47,7 +47,21 @@ export class SocketService {
     });
   }
 
+  unirseAStaff() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.socket.emit('join:staff', token);
+    }
+  }
+
+  unirseAPedido(codigoOrId: string | number) {
+    if (codigoOrId) {
+      this.socket.emit('join:pedido', codigoOrId);
+    }
+  }
+
   emit(event: string, data?: any) {
     this.socket.emit(event, data);
   }
 }
+

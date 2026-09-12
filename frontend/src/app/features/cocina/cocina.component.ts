@@ -108,7 +108,12 @@ import { Subscription } from 'rxjs';
                     }
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-700 text-slate-300">{{ pedido.tipo }}</span>
                   </div>
-                  <span class="text-slate-400 text-xs font-semibold bg-slate-900 px-2 py-1 rounded-md">{{ tiempoTranscurrido(pedido.createdAt) }}</span>
+                  <span
+                    [class]="claseSemaforo(pedido.createdAt)"
+                    class="text-xs font-bold px-2.5 py-1 rounded-md border flex items-center gap-1"
+                  >
+                    <span>⏱️</span> {{ tiempoTranscurrido(pedido.createdAt) }}
+                  </span>
                 </div>
 
                 @if (pedido.cliente) {
@@ -133,9 +138,10 @@ import { Subscription } from 'rxjs';
                 </ul>
 
                 @if (pedido.notas) {
-                  <p class="text-yellow-300 text-xs bg-yellow-400/10 border border-yellow-400/30 rounded-xl p-2.5 font-medium">
-                    📝 <strong>Notas:</strong> {{ pedido.notas }}
-                  </p>
+                  <div class="text-yellow-300 text-xs bg-yellow-400/10 border border-yellow-400/30 rounded-xl p-3 font-medium whitespace-pre-line space-y-1">
+                    <p class="font-bold text-yellow-400">📝 Indicaciones de Cocina:</p>
+                    <p class="text-yellow-200">{{ pedido.notas }}</p>
+                  </div>
                 }
 
                 <button
@@ -179,7 +185,12 @@ import { Subscription } from 'rxjs';
                     }
                     <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-900/40 text-blue-300">{{ pedido.tipo }}</span>
                   </div>
-                  <span class="text-slate-400 text-xs font-semibold bg-slate-900 px-2 py-1 rounded-md">{{ tiempoTranscurrido(pedido.createdAt) }}</span>
+                  <span
+                    [class]="claseSemaforo(pedido.createdAt)"
+                    class="text-xs font-bold px-2.5 py-1 rounded-md border flex items-center gap-1"
+                  >
+                    <span>⏱️</span> {{ tiempoTranscurrido(pedido.createdAt) }}
+                  </span>
                 </div>
 
                 @if (pedido.cliente) {
@@ -204,14 +215,15 @@ import { Subscription } from 'rxjs';
                 </ul>
 
                 @if (pedido.notas) {
-                  <p class="text-yellow-300 text-xs bg-yellow-400/10 border border-yellow-400/30 rounded-xl p-2.5 font-medium">
-                    📝 <strong>Notas:</strong> {{ pedido.notas }}
-                  </p>
+                  <div class="text-yellow-300 text-xs bg-yellow-400/10 border border-yellow-400/30 rounded-xl p-3 font-medium whitespace-pre-line space-y-1">
+                    <p class="font-bold text-yellow-400">📝 Indicaciones de Cocina:</p>
+                    <p class="text-yellow-200">{{ pedido.notas }}</p>
+                  </div>
                 }
 
                 <button
                   (click)="cambiarEstado(pedido.id, 'LISTO')"
-                  class="w-full bg-green-500 hover:bg-green-400 active:bg-green-600 text-white font-black py-3 rounded-xl transition-all shadow-md shadow-green-500/30 text-sm flex items-center justify-center gap-2"
+                  class="w-full bg-green-500 hover:bg-green-400 active:bg-green-600 text-white font-black py-3.5 rounded-xl transition-all shadow-md shadow-green-500/30 text-sm flex items-center justify-center gap-2"
                 >
                   <span>✅</span> ¡Plato listo para entregar!
                 </button>
@@ -219,59 +231,59 @@ import { Subscription } from 'rxjs';
             }
             @if (preparando().length === 0) {
               <div class="text-center py-16 bg-slate-800/40 rounded-2xl border border-slate-800 text-slate-500">
-                <p class="text-4xl mb-2">🍳</p>
-                <p class="font-bold text-slate-400">Nada en preparación</p>
-                <p class="text-xs mt-1">Inicia la preparación de los pedidos pendientes</p>
+                <p class="text-4xl mb-2">👨‍🍳</p>
+                <p class="font-bold text-slate-400">Sin platos en preparación</p>
+                <p class="text-xs mt-1">Pasa un pedido de 'Pendiente' cuando enciendas la hornilla</p>
               </div>
             }
           </div>
         </div>
 
       </div>
+
+      <!-- Modal de Stock de Platos -->
+      @if (modalStock()) {
+        <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+              <div>
+                <h3 class="text-lg font-black text-white">Disponibilidad de Platos</h3>
+                <p class="text-slate-400 text-xs">Marca como agotado si se terminó un insumo del día</p>
+              </div>
+              <button (click)="modalStock.set(false)" class="text-slate-400 hover:text-white text-lg">✕</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1">
+              @for (prod of listaProductos(); track prod.id) {
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                  <div class="min-w-0 pr-3">
+                    <p class="font-bold text-sm text-white truncate">{{ prod.nombre }}</p>
+                    <p class="text-xs text-slate-400">{{ prod.categoria?.nombre || 'Plato' }} · S/ {{ prod.precio_actual }}</p>
+                  </div>
+                  <button
+                    (click)="toggleDisponibilidad(prod)"
+                    [class]="prod.disponible ? 'bg-green-500/20 text-green-300 border-green-500/40 hover:bg-green-500/30' : 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30'"
+                    class="text-xs font-bold border px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                  >
+                    <span>{{ prod.disponible ? '🟢 Disponible' : '🔴 Agotado' }}</span>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="pt-2 border-t border-slate-700">
+              <button
+                (click)="modalStock.set(false)"
+                class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-black py-3 rounded-xl transition-colors text-sm"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        </div>
+      }
 
     </div>
-
-    <!-- Modal Control de Stock / Platos Agotados -->
-    @if (modalStock()) {
-      <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-800 border border-slate-700 text-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col overflow-hidden">
-          <div class="p-5 border-b border-slate-700 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <span class="text-2xl">🍽️</span>
-              <div>
-                <h2 class="font-black text-lg">Disponibilidad de Platos</h2>
-                <p class="text-xs text-slate-400">Apaga los platos que se quedaron sin insumos</p>
-              </div>
-            </div>
-            <button (click)="modalStock.set(false)" class="w-8 h-8 rounded-full bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">✕</button>
-          </div>
-
-          <div class="p-5 overflow-y-auto flex-1 space-y-3">
-            @for (prod of listaProductos(); track prod.id) {
-              <div class="flex items-center justify-between p-3.5 bg-slate-900/70 border border-slate-700 rounded-2xl">
-                <div>
-                  <p class="font-bold text-sm text-slate-100">{{ prod.nombre }}</p>
-                  <p class="text-xs text-slate-400">S/ {{ prod.precio_actual }} · {{ prod.categoria?.nombre || 'Plato' }}</p>
-                </div>
-                <button
-                  (click)="toggleDisponibilidad(prod)"
-                  [class]="prod.disponible ? 'bg-green-500 hover:bg-green-400 text-slate-900' : 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40'"
-                  class="text-xs font-black px-4 py-2 rounded-xl transition-all shadow-sm"
-                >
-                  {{ prod.disponible ? '🟢 Disponible' : '🚫 Agotado' }}
-                </button>
-              </div>
-            }
-          </div>
-
-          <div class="p-4 border-t border-slate-700 bg-slate-900/60 text-center">
-            <button (click)="modalStock.set(false)" class="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-6 py-2.5 rounded-xl text-xs">
-              Listo, cerrar panel
-            </button>
-          </div>
-        </div>
-      </div>
-    }
   `,
 })
 export class CocinaComponent implements OnInit, OnDestroy {
@@ -282,25 +294,25 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
   pendientes = signal<Pedido[]>([]);
   preparando = signal<Pedido[]>([]);
+  listaProductos = signal<Producto[]>([]);
+
   hora = signal('');
   sonidoHabilitado = signal(false);
   alertaNuevaComanda = signal(false);
   modalStock = signal(false);
-  listaProductos = signal<Producto[]>([]);
 
   private subs = new Subscription();
-  private audioCtx: any = null;
+  private audioCtx: AudioContext | null = null;
   private reloj: any;
 
   ngOnInit() {
+    this.socketService.unirseAStaff();
     this.cargar();
     this.cargarProductos();
 
-    // Escuchar WebSocket en tiempo real
     this.subs.add(
       this.socketService.nuevoPedido$.subscribe((nuevoPedido) => {
         if (nuevoPedido.estado === 'PENDIENTE') {
-          // Prevenir duplicados
           const listaActual = this.pendientes();
           if (!listaActual.some((p) => p.id === nuevoPedido.id)) {
             this.pendientes.set([nuevoPedido, ...listaActual]);
@@ -396,7 +408,6 @@ export class CocinaComponent implements OnInit, OnDestroy {
         return idx >= 0 ? list.map((item) => (item.id === p.id ? p : item)) : [p, ...list];
       });
     } else {
-      // LISTO, ENTREGADO o CANCELADO
       this.pendientes.update((list) => list.filter((item) => item.id !== p.id));
       this.preparando.update((list) => list.filter((item) => item.id !== p.id));
     }
@@ -415,6 +426,17 @@ export class CocinaComponent implements OnInit, OnDestroy {
     return `${diff} min`;
   }
 
+  claseSemaforo(fecha: string): string {
+    const minutos = Math.floor((Date.now() - new Date(fecha).getTime()) / 60000);
+    if (minutos < 10) {
+      return 'bg-emerald-950 text-emerald-300 border-emerald-800/80';
+    } else if (minutos <= 20) {
+      return 'bg-yellow-950 text-yellow-300 border-yellow-800/80';
+    } else {
+      return 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse';
+    }
+  }
+
   reproducirSonido() {
     try {
       this.habilitarAudio();
@@ -423,31 +445,30 @@ export class CocinaComponent implements OnInit, OnDestroy {
       const ctx = this.audioCtx;
       const ahora = ctx.currentTime;
 
-      // Tono 1
+      // Campana armónica de restaurante
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(659.25, ahora); // E5
       gain1.gain.setValueAtTime(0.4, ahora);
-      gain1.gain.exponentialRampToValueAtTime(0.001, ahora + 0.25);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ahora + 0.3);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
       osc1.start(ahora);
-      osc1.stop(ahora + 0.25);
+      osc1.stop(ahora + 0.3);
 
-      // Tono 2
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(987.77, ahora + 0.18); // B5
-      gain2.gain.setValueAtTime(0.5, ahora + 0.18);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ahora + 0.65);
+      osc2.frequency.setValueAtTime(987.77, ahora + 0.15); // B5
+      gain2.gain.setValueAtTime(0.5, ahora + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ahora + 0.7);
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
-      osc2.start(ahora + 0.18);
-      osc2.stop(ahora + 0.65);
+      osc2.start(ahora + 0.15);
+      osc2.stop(ahora + 0.7);
     } catch {
-      // Ignorar si el navegador bloquea audio
+      // Audio ignorado si no interactuó el usuario
     }
   }
 }

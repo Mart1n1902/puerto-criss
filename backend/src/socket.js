@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { verifyToken } from './utils/jwt.util.js';
 
 let io = null;
 
@@ -11,10 +12,28 @@ export const initSocket = (httpServer) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`🔌 Cliente conectado a WebSocket: ${socket.id}`);
+    // Unirse a sala de staff (Cocina, Mozos, Admin) con validación de token
+    socket.on('join:staff', (token) => {
+      try {
+        if (!token) return;
+        const user = verifyToken(token);
+        if (['ADMIN', 'COCINA', 'MOZO'].includes(user.rol)) {
+          socket.join('staff');
+        }
+      } catch (err) {
+        console.warn(`⚠️ Intento fallido de unirse a sala staff: ${err.message}`);
+      }
+    });
+
+    // Unirse a la sala privada de un pedido específico para seguimiento en vivo
+    socket.on('join:pedido', (codigoOrId) => {
+      if (!codigoOrId) return;
+      const room = `pedido:${String(codigoOrId).toUpperCase().trim()}`;
+      socket.join(room);
+    });
 
     socket.on('disconnect', () => {
-      console.log(`❌ Cliente desconectado: ${socket.id}`);
+      // Socket.io maneja la salida de salas automáticamente
     });
   });
 
@@ -28,21 +47,36 @@ export const getIO = () => {
   return io;
 };
 
-// Emisores globales de eventos en tiempo real
+// Emisores con aislamiento de privacidad y salas
 export const emitirNuevoPedido = (pedido) => {
   if (io) {
-    io.emit('pedido:nuevo', pedido);
+    // Notificar al personal operativo (Cocina, Mozos, Admin)
+    io.to('staff').emit('pedido:nuevo', pedido);
+
+    // Notificar a la sala del cliente si ya está suscrito
+    if (pedido.codigo) {
+      io.to(`pedido:${pedido.codigo.toUpperCase()}`).emit('pedido:nuevo', pedido);
+    }
   }
 };
 
 export const emitirCambioEstado = (pedido) => {
   if (io) {
-    io.emit('pedido:cambio_estado', pedido);
+    // Notificar al personal
+    io.to('staff').emit('pedido:cambio_estado', pedido);
+
+    // Notificar al cliente específico
+    if (pedido.codigo) {
+      io.to(`pedido:${pedido.codigo.toUpperCase()}`).emit('pedido:cambio_estado', pedido);
+    }
+    io.to(`pedido:${pedido.id}`).emit('pedido:cambio_estado', pedido);
   }
 };
 
 export const emitirProductoActualizado = (producto) => {
   if (io) {
+    // El stock de la carta es información pública para comensales y personal
     io.emit('producto:disponibilidad', producto);
   }
 };
+

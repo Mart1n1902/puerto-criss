@@ -1,10 +1,10 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ProductosService } from '../../../core/services/productos.service';
 import { CarritoService } from '../../../core/services/carrito.service';
 import { SocketService } from '../../../core/services/socket.service';
-import { Producto, Categoria } from '../../../core/models/models';
+import { Producto, Categoria, ItemPersonalizacion } from '../../../core/models/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { Subscription } from 'rxjs';
 
@@ -13,12 +13,22 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [FormsModule, RouterLink, IconComponent],
   template: `
+    <!-- Banner de Mesa Asignada vía QR -->
+    @if (carrito.mesaQR()) {
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 shadow-md flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center gap-2 text-xs sm:text-sm font-bold max-w-2xl mx-auto w-full">
+          <span class="text-xl">📍</span>
+          <span>Estás en la <strong>Mesa {{ carrito.mesaQR() }}</strong> · Tu orden irá directo a tu mesa</span>
+        </div>
+      </div>
+    }
+
     <!-- Hero banner -->
     <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 text-white px-4 py-8">
       <div class="max-w-2xl mx-auto text-center">
         <p class="text-cyan-400 text-sm font-semibold tracking-widest uppercase mb-2">Fresco del día</p>
         <h1 class="text-3xl font-black mb-1">Nuestro Menú</h1>
-        <p class="text-slate-400 text-sm">Elige tu plato favorito y lo preparamos al momento</p>
+        <p class="text-slate-400 text-sm">Elige tu plato favorito, personaliza el picor y lo preparamos al momento</p>
       </div>
     </div>
 
@@ -31,8 +41,8 @@ import { Subscription } from 'rxjs';
           <input
             type="text"
             [(ngModel)]="busqueda"
-            placeholder="¿Qué se te antoja hoy?"
-            class="flex-1 py-4 text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent"
+            placeholder="¿Qué se te antoja hoy? (Ceviche, Chicharrón, etc.)"
+            class="flex-1 py-4 text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent text-sm sm:text-base"
           />
           @if (busqueda) {
             <button (click)="busqueda = ''" class="text-slate-400 hover:text-slate-600">
@@ -88,7 +98,7 @@ import { Subscription } from 'rxjs';
         <div class="space-y-3">
           @for (producto of productosFiltrados(); track producto.id) {
             <div
-              class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all"
+              class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:shadow-md"
               [class.opacity-75]="!producto.disponible"
             >
               <div class="flex items-center gap-4 p-4">
@@ -109,8 +119,13 @@ import { Subscription } from 'rxjs';
 
                 <!-- Info -->
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <h3 class="font-bold text-slate-800 text-base leading-tight">{{ producto.nombre }}</h3>
+                    @if (esPlatoMarino(producto)) {
+                      <span class="text-[10px] bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded-full">
+                        🐟 Marino
+                      </span>
+                    }
                     @if (!producto.disponible) {
                       <span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">
                         Agotado por hoy
@@ -127,27 +142,13 @@ import { Subscription } from 'rxjs';
                 <!-- Acción -->
                 <div class="flex-shrink-0">
                   @if (producto.disponible) {
-                    @if (cantidadEnCarrito(producto.id) === 0) {
-                      <button
-                        (click)="agregar(producto)"
-                        class="w-10 h-10 bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white rounded-full flex items-center justify-center shadow-md shadow-orange-200 transition-colors"
-                        title="Agregar al pedido"
-                      >
-                        <app-icon name="plus" [size]="18" />
-                      </button>
-                    } @else {
-                      <div class="flex items-center gap-2 bg-slate-100 rounded-full px-2 py-1">
-                        <button
-                          (click)="actualizar(producto.id, cantidadEnCarrito(producto.id) - 1)"
-                          class="w-7 h-7 bg-white rounded-full text-slate-700 flex items-center justify-center shadow-sm"
-                        ><app-icon name="minus" [size]="14" /></button>
-                        <span class="font-black text-slate-800 w-4 text-center text-sm">{{ cantidadEnCarrito(producto.id) }}</span>
-                        <button
-                          (click)="agregar(producto)"
-                          class="w-7 h-7 bg-orange-500 rounded-full text-white flex items-center justify-center shadow-sm"
-                        ><app-icon name="plus" [size]="14" /></button>
-                      </div>
-                    }
+                    <button
+                      (click)="abrirModalPersonalizar(producto)"
+                      class="w-10 h-10 bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white rounded-full flex items-center justify-center shadow-md shadow-orange-200 transition-colors"
+                      title="Personalizar y agregar"
+                    >
+                      <app-icon name="plus" [size]="18" />
+                    </button>
                   } @else {
                     <span class="text-xs text-slate-400 font-semibold px-2 py-1 bg-slate-100 rounded-lg">
                       No disponible
@@ -163,9 +164,86 @@ import { Subscription } from 'rxjs';
 
     </div>
 
+    <!-- Modal de Personalización de Plato -->
+    @if (productoSeleccionado()) {
+      <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
+          
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-xs font-bold text-cyan-600 uppercase tracking-wider">Personaliza tu plato</span>
+              <h3 class="text-xl font-black text-slate-900">{{ productoSeleccionado()!.nombre }}</h3>
+              <p class="text-sm font-bold text-slate-500">S/ {{ productoSeleccionado()!.precio_actual }}</p>
+            </div>
+            <button (click)="cerrarModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+              ✕
+            </button>
+          </div>
+
+          <!-- Nivel de Picor -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">🌶️ Nivel de Picante</label>
+            <div class="grid grid-cols-2 gap-2">
+              @for (pic of opcionesPicante; track pic) {
+                <button
+                  type="button"
+                  (click)="picanteSeleccionado = pic"
+                  [class]="picanteSeleccionado === pic ? 'border-2 border-orange-500 bg-orange-50 text-orange-800 font-bold' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'"
+                  class="py-2.5 px-3 rounded-xl text-xs transition-all text-center"
+                >
+                  {{ pic }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Guarnición / Preferencia -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">🍠 Guarnición / Preferencia</label>
+            <div class="grid grid-cols-2 gap-2">
+              @for (guar of opcionesGuarnicion; track guar) {
+                <button
+                  type="button"
+                  (click)="guarnicionSeleccionada = guar"
+                  [class]="guarnicionSeleccionada === guar ? 'border-2 border-cyan-500 bg-cyan-50 text-cyan-800 font-bold' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'"
+                  class="py-2.5 px-3 rounded-xl text-xs transition-all text-center"
+                >
+                  {{ guar }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Nota especial -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">📝 Nota para cocina (opcional)</label>
+            <input
+              type="text"
+              [(ngModel)]="notaItem"
+              placeholder="Ej. Sin cebolla, limón suave..."
+              class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-cyan-500 bg-slate-50"
+            />
+          </div>
+
+          <!-- Botón Confirmar Agregar -->
+          <div class="pt-2">
+            <button
+              (click)="confirmarAgregar()"
+              class="w-full bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
+            >
+              <span>Agregar a mi orden</span>
+              <span>·</span>
+              <span>S/ {{ productoSeleccionado()!.precio_actual }}</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    }
+
     <!-- Barra flotante del carrito -->
     @if (carrito.cantidad() > 0) {
-      <div class="fixed bottom-0 left-0 right-0 p-4 z-50">
+      <div class="fixed bottom-0 left-0 right-0 p-4 z-40">
         <a
           routerLink="/carrito"
           class="flex items-center justify-between bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white font-bold px-5 py-4 rounded-2xl shadow-2xl shadow-orange-300 transition-colors max-w-2xl mx-auto"
@@ -179,6 +257,7 @@ import { Subscription } from 'rxjs';
   `,
 })
 export class MenuComponent implements OnInit, OnDestroy {
+  private route = inject(ActivatedRoute);
   private productosService = inject(ProductosService);
   private socketService = inject(SocketService);
   carrito = inject(CarritoService);
@@ -189,6 +268,14 @@ export class MenuComponent implements OnInit, OnDestroy {
   busqueda = '';
   loading = signal(true);
   private sub = new Subscription();
+
+  // Personalizador
+  productoSeleccionado = signal<Producto | null>(null);
+  opcionesPicante = ['Poco picante', 'Punto medio (Recomendado)', 'Bien picante / Fuego', 'Sin ají'];
+  opcionesGuarnicion = ['Clásico (Camote y choclo)', 'Doble canchita', 'Con yuca frita', 'Sin cebolla'];
+  picanteSeleccionado = 'Punto medio (Recomendado)';
+  guarnicionSeleccionada = 'Clásico (Camote y choclo)';
+  notaItem = '';
 
   productosFiltrados = computed(() => {
     let lista = this.productos();
@@ -201,6 +288,13 @@ export class MenuComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    // Detectar parámetro ?mesa=X desde QR
+    this.route.queryParams.subscribe((params) => {
+      if (params['mesa']) {
+        this.carrito.fijarMesaQR(String(params['mesa']));
+      }
+    });
+
     this.productosService.getCategorias().subscribe(({ data }) => this.categorias.set(data));
     this.cargar();
 
@@ -219,21 +313,41 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   cargar() {
-    // Cargar todos los productos para mostrar también los agotados con etiqueta
     this.productosService.getProductos(false).subscribe({
       next: ({ data }) => { this.productos.set(data); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
-  agregar(producto: Producto) {
-    if (!producto.disponible) return;
-    this.carrito.agregar(producto);
+  esPlatoMarino(producto: Producto): boolean {
+    const cat = producto.categoria?.nombre?.toLowerCase() || '';
+    const nom = producto.nombre.toLowerCase();
+    return cat.includes('ceviche') || cat.includes('mariscos') || nom.includes('ceviche') || nom.includes('leche de tigre') || nom.includes('chicharrón');
   }
 
-  actualizar(id: number, cantidad: number) { this.carrito.actualizar(id, cantidad); }
+  abrirModalPersonalizar(producto: Producto) {
+    this.productoSeleccionado.set(producto);
+    this.picanteSeleccionado = 'Punto medio (Recomendado)';
+    this.guarnicionSeleccionada = 'Clásico (Camote y choclo)';
+    this.notaItem = '';
+  }
 
-  cantidadEnCarrito(productoId: number): number {
-    return this.carrito.items().find((i) => i.producto.id === productoId)?.cantidad ?? 0;
+  cerrarModal() {
+    this.productoSeleccionado.set(null);
+  }
+
+  confirmarAgregar() {
+    const prod = this.productoSeleccionado();
+    if (!prod) return;
+
+    const personalizacion: ItemPersonalizacion = {
+      picante: this.picanteSeleccionado,
+      guarnicion: this.guarnicionSeleccionada,
+      notaItem: this.notaItem.trim() || undefined,
+    };
+
+    this.carrito.agregar(prod, personalizacion);
+    this.cerrarModal();
   }
 }
+

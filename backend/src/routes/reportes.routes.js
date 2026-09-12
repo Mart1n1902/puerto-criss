@@ -12,5 +12,7 @@ router.get('/ventas', ...adminOnly, ctrl.getVentasPorDia);
 router.get('/comparativa', ...adminOnly, ctrl.getComparativaSemanal);
 router.get('/gastos-categoria', ...adminOnly, ctrl.getGastosPorCategoria);
 router.get('/resumen-ia', ...adminOnly, ctrl.getResumenIA);
+router.get('/exportar-csv', ...adminOnly, ctrl.exportarCSV);
 
 export default router;
+

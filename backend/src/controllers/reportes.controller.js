@@ -29,11 +29,24 @@ export const getGastosPorCategoria = async (req, res, next) => {
 export const getResumenIA = async (req, res, next) => {
   try {
     const [kpis, dashboard, comparativa] = await Promise.all([
-      svc.getKpis(),
-      svc.getDashboard(),
-      svc.getComparativaSemanal(2),
-    ]);
-    const resumen = await iaSvc.generarResumen(kpis, dashboard.top_productos, comparativa);
-    ok(res, { resumen });
-  } catch (err) { next(err); }
+       svc.getKpis(),
+       svc.getDashboard(),
+       svc.getComparativaSemanal(2),
+     ]);
+     const resumen = await iaSvc.generarResumen(kpis, dashboard.top_productos, comparativa);
+     ok(res, { resumen });
+   } catch (err) { next(err); }
+ };
+
+export const exportarCSV = async (req, res, next) => {
+   try {
+     const { desde, hasta } = req.query;
+     const csvData = await svc.exportarVentasCSV({ desde, hasta });
+     const filename = `ventas-puerto-criss-${new Date().toISOString().split('T')[0]}.csv`;
+
+     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+     res.send(csvData);
+   } catch (err) { next(err); }
 };
+

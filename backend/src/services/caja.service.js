@@ -6,27 +6,43 @@ export const getSesionActiva = () =>
     include: { usuario: { select: { nombre: true } }, movimientos: true },
   });
 
-export const abrir = (usuario_id, monto_inicial) =>
-  prisma.sesionCaja.create({ data: { usuario_id, monto_inicial } });
+export const abrir = async (usuario_id, monto_inicial) => {
+  const activa = await prisma.sesionCaja.findFirst({ where: { estado: 'ABIERTA' } });
+  if (activa) {
+    throw { status: 400, message: 'Ya existe una sesión de caja abierta actualmente' };
+  }
+  return prisma.sesionCaja.create({
+    data: {
+      usuario_id: parseInt(usuario_id),
+      monto_inicial: parseFloat(monto_inicial) || 0,
+    },
+  });
+};
 
 export const cerrar = async (id) => {
-  const sesion = await prisma.sesionCaja.findUniqueOrThrow({ where: { id } });
+  return prisma.$transaction(async (tx) => {
+    const sesion = await tx.sesionCaja.findUniqueOrThrow({ where: { id: parseInt(id) } });
 
-  const movimientos = await prisma.movimientoCaja.findMany({
-    where: { sesion_caja_id: id },
-    include: { categoria_movimiento: true },
-  });
+    if (sesion.estado === 'CERRADA') {
+      throw { status: 400, message: 'Esta sesión de caja ya fue cerrada previamente' };
+    }
 
-  const netoMovimientos = movimientos.reduce((sum, m) => {
-    const val = parseFloat(m.monto);
-    return m.categoria_movimiento.tipo === 'INGRESO' ? sum + val : sum - val;
-  }, 0);
+    const movimientos = await tx.movimientoCaja.findMany({
+      where: { sesion_caja_id: parseInt(id) },
+      include: { categoria_movimiento: true },
+    });
 
-  const monto_final = parseFloat(sesion.monto_inicial || 0) + netoMovimientos;
+    const netoMovimientos = movimientos.reduce((sum, m) => {
+      const val = parseFloat(m.monto);
+      return m.categoria_movimiento.tipo === 'INGRESO' ? sum + val : sum - val;
+    }, 0);
 
-  return prisma.sesionCaja.update({
-    where: { id },
-    data: { estado: 'CERRADA', fecha_cierre: new Date(), monto_final },
+    const monto_final = parseFloat(sesion.monto_inicial || 0) + netoMovimientos;
+
+    return tx.sesionCaja.update({
+      where: { id: parseInt(id) },
+      data: { estado: 'CERRADA', fecha_cierre: new Date(), monto_final },
+    });
   });
 };
 
@@ -35,3 +51,4 @@ export const getHistorial = () =>
     orderBy: { fecha_apertura: 'desc' },
     include: { usuario: { select: { nombre: true } } },
   });
+

@@ -34,4 +34,15 @@ export class ReportesService {
       `${this.api}/reportes/resumen-ia`
     );
   }
+
+  exportarCSV(desde?: string, hasta?: string) {
+    let url = `${this.api}/reportes/exportar-csv`;
+    const params: string[] = [];
+    if (desde) params.push(`desde=${encodeURIComponent(desde)}`);
+    if (hasta) params.push(`hasta=${encodeURIComponent(hasta)}`);
+    if (params.length) url += `?${params.join('&')}`;
+
+    return this.http.get(url, { responseType: 'blob' });
+  }
 }
+

@@ -90,118 +90,125 @@ export const create = async ({
     };
   });
 
-  // Manejo seguro de cliente por teléfono
-  let clienteRecord = null;
-  if (cliente?.nombre) {
-    const telefono = cliente.telefono?.trim();
-    if (telefono) {
-      const existente = await prisma.cliente.findFirst({
-        where: { telefono },
-      });
-      if (existente) {
-        clienteRecord = await prisma.cliente.update({
-          where: { id: existente.id },
+  // Ejecutar operaciones atómicamente dentro de una transacción
+  const nuevoPedido = await prisma.$transaction(async (tx) => {
+    // 1. Manejo seguro de cliente por teléfono
+    let clienteRecord = null;
+    if (cliente?.nombre) {
+      const telefono = cliente.telefono?.trim();
+      if (telefono) {
+        const existente = await tx.cliente.findFirst({
+          where: { telefono },
+        });
+        if (existente) {
+          clienteRecord = await tx.cliente.update({
+            where: { id: existente.id },
+            data: { nombre: cliente.nombre.trim() },
+          });
+        } else {
+          clienteRecord = await tx.cliente.create({
+            data: { nombre: cliente.nombre.trim(), telefono },
+          });
+        }
+      } else {
+        clienteRecord = await tx.cliente.create({
           data: { nombre: cliente.nombre.trim() },
         });
-      } else {
-        clienteRecord = await prisma.cliente.create({
-          data: { nombre: cliente.nombre.trim(), telefono },
-        });
       }
-    } else {
-      clienteRecord = await prisma.cliente.create({
-        data: { nombre: cliente.nombre.trim() },
-      });
     }
-  }
 
-  const parsedMesaId = mesa_id ? parseInt(mesa_id) : null;
+    const parsedMesaId = mesa_id ? parseInt(mesa_id) : null;
 
-  // Si se asigna a una mesa, marcarla como ocupada
-  if (parsedMesaId) {
-    await prisma.mesa
-      .update({
+    // 2. Si se asigna a una mesa, marcarla como ocupada
+    if (parsedMesaId) {
+      await tx.mesa.update({
         where: { id: parsedMesaId },
         data: { estado: 'OCUPADA' },
-      })
-      .catch(() => {});
-  }
+      });
+    }
 
-  // Generar código único aleatorio
-  let codigo = generarCodigo();
-  let reintentos = 0;
-  while (await prisma.pedido.findUnique({ where: { codigo } }).catch(() => null) && reintentos < 5) {
-    codigo = generarCodigo();
-    reintentos++;
-  }
+    // 3. Generar código único aleatorio
+    let codigo = generarCodigo();
+    let reintentos = 0;
+    while (await tx.pedido.findUnique({ where: { codigo } }) && reintentos < 5) {
+      codigo = generarCodigo();
+      reintentos++;
+    }
 
-  const nuevoPedido = await prisma.pedido.create({
-    data: {
-      codigo,
-      tipo,
-      direccion: direccion || null,
-      referencia: referencia || null,
-      notas: notas || null,
-      mesa_id: parsedMesaId,
-      sesion_caja_id: sesion_caja_id ? parseInt(sesion_caja_id) : null,
-      usuario_id: usuario_id ? parseInt(usuario_id) : null,
-      cliente_id: clienteRecord?.id ?? null,
-      detalles: {
-        create: detallesValidados,
+    // 4. Crear el pedido y sus detalles
+    return tx.pedido.create({
+      data: {
+        codigo,
+        tipo,
+        direccion: direccion || null,
+        referencia: referencia || null,
+        notas: notas || null,
+        mesa_id: parsedMesaId,
+        sesion_caja_id: sesion_caja_id ? parseInt(sesion_caja_id) : null,
+        usuario_id: usuario_id ? parseInt(usuario_id) : null,
+        cliente_id: clienteRecord?.id ?? null,
+        detalles: {
+          create: detallesValidados,
+        },
       },
-    },
-    include: pedidoInclude,
+      include: pedidoInclude,
+    });
   });
 
-  // Notificar a Cocina y Mozos en tiempo real
+  // Notificar a Cocina y Mozos en tiempo real mediante WebSocket seguro
   emitirNuevoPedido(nuevoPedido);
 
   return nuevoPedido;
 };
 
 export const cambiarEstado = async (id, estado) => {
-  const pedido = await prisma.pedido.update({
-    where: { id },
-    data: { estado },
-    include: pedidoInclude,
+  const pedido = await prisma.$transaction(async (tx) => {
+    const ped = await tx.pedido.update({
+      where: { id },
+      data: { estado },
+      include: pedidoInclude,
+    });
+
+    // Al entregar, registrar ingreso automático en caja si hay sesión activa y no existe ya un registro
+    if (estado === 'ENTREGADO' && ped.sesion_caja_id) {
+      const total = ped.detalles.reduce(
+        (sum, d) => sum + d.cantidad * parseFloat(d.precio_unitario),
+        0
+      );
+
+      const movExistente = await tx.movimientoCaja.findFirst({
+        where: {
+          sesion_caja_id: ped.sesion_caja_id,
+          descripcion: `Pedido #${id}`,
+        },
+      });
+
+      if (!movExistente && total > 0) {
+        const catIngreso = await tx.categoriaMovimiento.findFirst({
+          where: { tipo: 'INGRESO' },
+        });
+        if (catIngreso) {
+          await tx.movimientoCaja.create({
+            data: {
+              sesion_caja_id: ped.sesion_caja_id,
+              categoria_movimiento_id: catIngreso.id,
+              monto: total,
+              descripcion: `Pedido #${id}`,
+            },
+          });
+        }
+      }
+    }
+
+    return ped;
   });
 
   // Notificar cambio de estado a cliente y pantallas en tiempo real
   emitirCambioEstado(pedido);
-
-  // Al entregar, registrar ingreso automático en caja si hay sesión activa y no existe ya un registro
-  if (estado === 'ENTREGADO' && pedido.sesion_caja_id) {
-    const total = pedido.detalles.reduce(
-      (sum, d) => sum + d.cantidad * parseFloat(d.precio_unitario),
-      0
-    );
-
-    const movExistente = await prisma.movimientoCaja.findFirst({
-      where: {
-        sesion_caja_id: pedido.sesion_caja_id,
-        descripcion: `Pedido #${id}`,
-      },
-    });
-
-    if (!movExistente && total > 0) {
-      const catIngreso = await prisma.categoriaMovimiento.findFirst({
-        where: { tipo: 'INGRESO' },
-      });
-      if (catIngreso) {
-        await prisma.movimientoCaja.create({
-          data: {
-            sesion_caja_id: pedido.sesion_caja_id,
-            categoria_movimiento_id: catIngreso.id,
-            monto: total,
-            descripcion: `Pedido #${id}`,
-          },
-        });
-      }
-    }
-  }
 
   return pedido;
 };
 
 export const registrarPago = async (pedido_id, { metodo, monto }) =>
   prisma.pago.create({ data: { pedido_id, metodo, monto } });
+
