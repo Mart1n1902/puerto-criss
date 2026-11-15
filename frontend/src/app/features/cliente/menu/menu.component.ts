@@ -33,28 +33,31 @@ import { Subscription } from 'rxjs';
     }
 
     <!-- Hero banner -->
-    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 text-white px-4 py-8">
-      <div class="max-w-2xl mx-auto text-center">
-        <p class="text-cyan-400 text-sm font-semibold tracking-widest uppercase mb-2">Fresco del día</p>
-        <h1 class="text-3xl font-black mb-1">Nuestro Menú</h1>
-        <p class="text-slate-400 text-sm">Elige tu plato favorito, personaliza el picor y lo preparamos al momento</p>
+    <div class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 text-white px-4 pt-10 pb-14">
+      <div class="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-cyan-500/15 blur-3xl"></div>
+      <div class="relative max-w-4xl mx-auto text-center">
+        <span class="inline-block text-cyan-300 text-xs font-extrabold tracking-widest uppercase bg-cyan-400/10 border border-cyan-400/20 px-3 py-1 rounded-full mb-3">
+          Fresco del día
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-black mb-2 tracking-tight">Nuestra Carta</h1>
+        <p class="text-slate-300 text-sm sm:text-base max-w-md mx-auto">Elige tu plato favorito, personaliza el picor y lo preparamos al momento</p>
       </div>
     </div>
 
-    <div class="max-w-2xl mx-auto px-4 pb-32">
+    <div class="max-w-4xl mx-auto px-4 pb-32">
 
       <!-- Búsqueda -->
-      <div class="relative -mt-5 mb-6">
-        <div class="bg-white rounded-2xl shadow-lg flex items-center px-4 gap-3 border border-slate-100">
-          <span class="text-slate-400"><app-icon name="search" [size]="18" /></span>
+      <div class="relative -mt-6 mb-6 max-w-2xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl shadow-slate-900/5 flex items-center px-4 gap-3 border border-slate-100 focus-within:ring-2 focus-within:ring-cyan-400 transition-all">
+          <span class="text-cyan-600"><app-icon name="search" [size]="18" /></span>
           <input
             type="text"
             [(ngModel)]="busqueda"
-            placeholder="¿Qué se te antoja hoy? (Ceviche, Chicharrón, etc.)"
+            placeholder="¿Qué se te antoja hoy? (Ceviche, Chicharrón, Leche de Tigre...)"
             class="flex-1 py-4 text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent text-sm sm:text-base"
           />
           @if (busqueda) {
-            <button (click)="busqueda = ''" class="text-slate-400 hover:text-slate-600">
+            <button (click)="busqueda = ''" aria-label="Limpiar búsqueda" class="text-slate-400 hover:text-slate-600 p-1">
               <app-icon name="x" [size]="16" />
             </button>
           }
@@ -62,10 +65,10 @@ import { Subscription } from 'rxjs';
       </div>
 
       <!-- Categorías -->
-      <div class="flex gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide -mx-4 px-4">
+      <div class="flex gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center sm:flex-wrap">
         <button
           (click)="categoriaActiva.set(null)"
-          [class]="!categoriaActiva() ? 'bg-cyan-500 text-slate-900 font-black shadow-lg shadow-cyan-200' : 'bg-white text-slate-600 border border-slate-200 font-semibold'"
+          [class]="!categoriaActiva() ? 'bg-slate-900 text-cyan-300 font-extrabold shadow-lg shadow-slate-900/15' : 'bg-white text-slate-600 border border-slate-200 hover:border-cyan-300 font-semibold'"
           class="flex-shrink-0 px-5 py-2.5 rounded-full text-sm transition-all"
         >
           Todos
@@ -73,7 +76,7 @@ import { Subscription } from 'rxjs';
         @for (cat of categorias(); track cat.id) {
           <button
             (click)="categoriaActiva.set(cat.id)"
-            [class]="categoriaActiva() === cat.id ? 'bg-cyan-500 text-slate-900 font-black shadow-lg shadow-cyan-200' : 'bg-white text-slate-600 border border-slate-200 font-semibold'"
+            [class]="categoriaActiva() === cat.id ? 'bg-slate-900 text-cyan-300 font-extrabold shadow-lg shadow-slate-900/15' : 'bg-white text-slate-600 border border-slate-200 hover:border-cyan-300 font-semibold'"
             class="flex-shrink-0 px-5 py-2.5 rounded-full text-sm transition-all whitespace-nowrap"
           >
             {{ cat.nombre }}
@@ -83,9 +86,9 @@ import { Subscription } from 'rxjs';
 
       <!-- Loading skeleton -->
       @if (loading()) {
-        <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           @for (i of [1,2,3,4]; track i) {
-            <div class="bg-white rounded-2xl h-28 animate-pulse"></div>
+            <div class="bg-white rounded-3xl h-32 animate-pulse border border-slate-100"></div>
           }
         </div>
       }
@@ -93,78 +96,78 @@ import { Subscription } from 'rxjs';
       <!-- Lista de productos -->
       @if (!loading()) {
         @if (productosFiltrados().length === 0) {
-          <div class="text-center py-20 text-slate-400">
+          <div class="text-center py-20 text-slate-400 bg-white rounded-3xl border border-slate-100">
             <div class="flex justify-center mb-3 text-slate-300">
               <app-icon name="search" [size]="48" />
             </div>
-            <p class="font-medium">No encontramos ese plato</p>
-            <button (click)="busqueda = ''; categoriaActiva.set(null)" class="text-cyan-500 text-sm mt-2 hover:underline font-bold">
+            <p class="font-semibold text-slate-600">No encontramos ese plato</p>
+            <button (click)="busqueda = ''; categoriaActiva.set(null)" class="text-cyan-600 text-sm mt-2 hover:underline font-bold">
               Ver todo el menú
             </button>
           </div>
         }
 
-        <div class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           @for (producto of productosFiltrados(); track producto.id) {
             <div
-              class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:shadow-md"
-              [class.opacity-75]="!producto.disponible"
+              class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:shadow-xl hover:shadow-cyan-500/5 hover:border-cyan-200 flex flex-col justify-between"
+              [class.opacity-70]="!producto.disponible"
             >
-              <div class="flex items-center gap-4 p-4">
+              <div class="flex items-start gap-4 p-4">
 
                 <!-- Imagen -->
-                <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-cyan-50 to-slate-100 flex items-center justify-center relative">
+                <div class="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-cyan-50 via-teal-50 to-orange-50 flex items-center justify-center relative border border-slate-100">
                   @if (producto.imagen_url) {
                     <img [src]="producto.imagen_url" [alt]="producto.nombre" class="w-full h-full object-cover" />
                   } @else {
-                    <span class="text-slate-300"><app-icon name="utensils" [size]="32" /></span>
+                    <span class="text-cyan-300"><app-icon name="utensils" [size]="34" /></span>
                   }
                   @if (!producto.disponible) {
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <span class="text-xs font-black text-white bg-red-600 px-1.5 py-0.5 rounded shadow">AGOTADO</span>
+                    <div class="absolute inset-0 bg-slate-900/55 flex items-center justify-center">
+                      <span class="text-[10px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full shadow">AGOTADO</span>
                     </div>
                   }
                 </div>
 
                 <!-- Info -->
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <h3 class="font-bold text-slate-800 text-base leading-tight">{{ producto.nombre }}</h3>
+                  <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span class="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
+                      {{ producto.categoria.nombre }}
+                    </span>
                     @if (esPlatoMarino(producto)) {
-                      <span class="text-[10px] bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded-full">
+                      <span class="text-[10px] bg-cyan-50 text-cyan-700 border border-cyan-100 font-bold px-2 py-0.5 rounded-full">
                         🐟 Marino
                       </span>
                     }
-                    @if (!producto.disponible) {
-                      <span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">
-                        Agotado por hoy
-                      </span>
-                    }
                   </div>
-                  <p class="text-xs text-slate-400 mt-0.5 mb-1.5">{{ producto.categoria.nombre }}</p>
+                  <h3 class="font-extrabold text-slate-900 text-base leading-snug">{{ producto.nombre }}</h3>
                   @if (producto.descripcion) {
-                    <p class="text-xs text-slate-500 line-clamp-1 mb-1">{{ producto.descripcion }}</p>
+                    <p class="text-xs text-slate-500 line-clamp-2 mt-1">{{ producto.descripcion }}</p>
                   }
-                  <p class="text-cyan-600 font-black text-lg">S/ {{ producto.precio_actual }}</p>
                 </div>
+              </div>
 
-                <!-- Acción -->
-                <div class="flex-shrink-0">
+              <div class="px-4 pb-4 pt-2 flex items-center justify-between border-t border-slate-50">
+                <p class="text-slate-900 font-black text-lg">
+                  <span class="text-xs font-bold text-cyan-600 mr-0.5">S/</span>{{ producto.precio_actual }}
+                </p>
+
+                <div>
                   @if (producto.disponible) {
                     <button
                       (click)="abrirModalPersonalizar(producto)"
-                      class="w-10 h-10 bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white rounded-full flex items-center justify-center shadow-md shadow-orange-200 transition-colors"
+                      class="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-xl px-4 py-2 text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 transition-all"
                       title="Personalizar y agregar"
                     >
-                      <app-icon name="plus" [size]="18" />
+                      <app-icon name="plus" [size]="15" /> Agregar
                     </button>
                   } @else {
-                    <span class="text-xs text-slate-400 font-semibold px-2 py-1 bg-slate-100 rounded-lg">
+                    <span class="text-xs text-slate-400 font-semibold px-3 py-1.5 bg-slate-100 rounded-xl">
                       No disponible
                     </span>
                   }
                 </div>
-
               </div>
             </div>
           }

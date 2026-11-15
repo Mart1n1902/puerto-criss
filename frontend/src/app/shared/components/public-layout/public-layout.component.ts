@@ -12,11 +12,17 @@ import { NavbarComponent } from '../navbar/navbar.component';
       <main class="flex-1">
         <router-outlet />
       </main>
-      <footer class="bg-slate-900 text-slate-400 py-6 text-xs text-center border-t border-slate-800 flex flex-col items-center gap-2">
-        <p>© 2026 Puerto Criss — Cevichería & Marisquería</p>
-        <a routerLink="/login" class="text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-1 font-medium">
-          <span>🔒</span> Acceso de Personal / Admin
-        </a>
+      <footer class="bg-slate-950 text-slate-400 py-8 px-4 text-xs border-t border-white/10">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-2 text-slate-300 font-bold">
+            <span>🦐</span>
+            <span>Puerto Criss — Cevichería &amp; Marisquería</span>
+          </div>
+          <p class="text-slate-500">© 2026 Todos los derechos reservados · Lima, Perú</p>
+          <a routerLink="/login" class="text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1.5 font-medium bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+            <span>🔒</span> Acceso Personal
+          </a>
+        </div>
       </footer>
     </div>
   `,
