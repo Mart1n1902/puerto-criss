@@ -15,7 +15,7 @@ import { Subscription } from 'rxjs';
   template: `
     <!-- Banner de Mesa Asignada vía QR -->
     @if (carrito.mesaQR()) {
-      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 shadow-md flex items-center justify-between sticky top-0 z-40">
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 shadow-md flex items-center justify-between sticky top-16 z-30">
         <div class="flex items-center gap-2 text-xs sm:text-sm font-bold max-w-2xl mx-auto w-full">
           <span class="text-xl">📍</span>
           <span>Estás en la <strong>Mesa {{ carrito.mesaQR() }}</strong> · Tu orden irá directo a tu mesa</span>

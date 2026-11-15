@@ -70,7 +70,7 @@ import { Pedido, EstadoPedido } from '../../../core/models/models';
                 📦 {{ pedido.tipo }} · {{ pedido.detalles.length }} plato(s)
               </p>
               <div class="mt-1 bg-slate-50 p-2 rounded-lg text-xs text-slate-700 font-medium">
-                @for (d of pedido.detalles; track d.producto_id; let last = $last) {
+                @for (d of pedido.detalles; track $index; let last = $last) {
                   <span>{{ d.cantidad }}x {{ d.producto.nombre }}{{ !last ? ', ' : '' }}</span>
                 }
               </div>

@@ -1,7 +1,6 @@
-import { Component, inject, signal, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, inject, signal, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportesService } from '../../../core/services/reportes.service';
-import { CajaService } from '../../../core/services/caja.service';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Chart, registerables } from 'chart.js';
@@ -253,13 +252,13 @@ Chart.register(...registerables);
     </div>
   `,
 })
-export class ReportesComponent implements OnInit, AfterViewInit {
+export class ReportesComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('ventasChart') ventasChartRef!: ElementRef;
   @ViewChild('semanalChart') semanalChartRef!: ElementRef;
   @ViewChild('categoriaChart') categoriaChartRef!: ElementRef;
 
   private reportesService = inject(ReportesService);
-  private cajaService = inject(CajaService);
+  private timers: ReturnType<typeof setTimeout>[] = [];
 
   kpis = signal<any>(null);
   ventasData = signal<any[]>([]);
@@ -290,10 +289,16 @@ export class ReportesComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    setTimeout(() => {
+    this.timers.push(setTimeout(() => {
       this.renderVentasChart();
       this.renderSemanalChart();
-    }, 300);
+    }, 300));
+  }
+
+  ngOnDestroy() {
+    this.timers.forEach((t) => clearTimeout(t));
+    Object.values(this.charts).forEach((chart) => chart?.destroy());
+    this.charts = {};
   }
 
   cargarVentas() {
@@ -310,7 +315,10 @@ export class ReportesComponent implements OnInit, AfterViewInit {
 
   cargarGastosPorCategoria() {
     this.reportesService.getGastosPorCategoria(this.filtro.desde, this.filtro.hasta).subscribe({
-      next: ({ data }) => { this.categoriasData.set(data); setTimeout(() => this.renderCategoriaChart(), 100); },
+      next: ({ data }) => {
+        this.categoriasData.set(data);
+        this.timers.push(setTimeout(() => this.renderCategoriaChart(), 100));
+      },
     });
   }
 

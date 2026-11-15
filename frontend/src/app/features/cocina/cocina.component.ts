@@ -127,7 +127,7 @@ import { Subscription } from 'rxjs';
                 }
 
                 <ul class="space-y-1.5 bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80">
-                  @for (item of pedido.detalles; track item.producto_id) {
+                  @for (item of pedido.detalles; track $index) {
                     <li class="flex items-center gap-2.5 text-sm">
                       <span class="bg-yellow-400 text-slate-900 font-black w-6 h-6 rounded-lg flex items-center justify-center text-xs shadow-sm">
                         {{ item.cantidad }}
@@ -204,7 +204,7 @@ import { Subscription } from 'rxjs';
                 }
 
                 <ul class="space-y-1.5 bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80">
-                  @for (item of pedido.detalles; track item.producto_id) {
+                  @for (item of pedido.detalles; track $index) {
                     <li class="flex items-center gap-2.5 text-sm">
                       <span class="bg-blue-500/30 text-blue-300 font-black w-6 h-6 rounded-lg flex items-center justify-center text-xs">
                         {{ item.cantidad }}
@@ -304,6 +304,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
   private subs = new Subscription();
   private audioCtx: AudioContext | null = null;
   private reloj: any;
+  private alertaTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit() {
     this.socketService.unirseAStaff();
@@ -318,7 +319,8 @@ export class CocinaComponent implements OnInit, OnDestroy {
             this.pendientes.set([nuevoPedido, ...listaActual]);
             this.alertaNuevaComanda.set(true);
             this.reproducirSonido();
-            setTimeout(() => this.alertaNuevaComanda.set(false), 8000);
+            if (this.alertaTimeout) clearTimeout(this.alertaTimeout);
+            this.alertaTimeout = setTimeout(() => this.alertaNuevaComanda.set(false), 8000);
           }
         }
       })
@@ -345,6 +347,8 @@ export class CocinaComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.subs.unsubscribe();
     clearInterval(this.reloj);
+    if (this.alertaTimeout) clearTimeout(this.alertaTimeout);
+    this.audioCtx?.close().catch(() => {});
   }
 
   habilitarAudio() {

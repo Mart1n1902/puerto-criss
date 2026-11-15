@@ -1,6 +1,8 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { Subject, Subscription, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { CarritoService } from '../../../core/services/carrito.service';
 import { PedidosService } from '../../../core/services/pedidos.service';
 import { MesasService } from '../../../core/services/mesas.service';
@@ -249,12 +251,14 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
     </div>
   `,
 })
-export class CarritoComponent implements OnInit {
+export class CarritoComponent implements OnInit, OnDestroy {
   carrito = inject(CarritoService);
   private pedidosService = inject(PedidosService);
   private mesasService = inject(MesasService);
   private clientesService = inject(ClientesService);
   private router = inject(Router);
+  private telefonoInput$ = new Subject<string>();
+  private sub = new Subscription();
 
   tipo: TipoPedido = 'RECOJO';
   metodoPago: MetodoPago = 'EFECTIVO';
@@ -281,6 +285,30 @@ export class CarritoComponent implements OnInit {
   ];
 
   ngOnInit() {
+    this.sub.add(
+      this.telefonoInput$
+        .pipe(
+          debounceTime(350),
+          distinctUntilChanged(),
+          switchMap((tel) =>
+            tel.length >= 8
+              ? this.clientesService.lookup(tel).pipe(catchError(() => of(null)))
+              : of(null)
+          )
+        )
+        .subscribe((res) => {
+          const data = res?.data;
+          if (data) {
+            this.clienteFrecuente.set(true);
+            if (!this.nombre) this.nombre = data.nombre;
+            if (this.tipo === 'DELIVERY') {
+              if (!this.direccion && data.direccion) this.direccion = data.direccion;
+              if (!this.referencia && data.referencia) this.referencia = data.referencia;
+            }
+          }
+        })
+    );
+
     this.mesasService.getAll().subscribe({
       next: ({ data }) => {
         this.mesas.set(data);
@@ -288,6 +316,10 @@ export class CarritoComponent implements OnInit {
       },
       error: () => {},
     });
+  }
+
+  ngOnDestroy() {
+    this.sub.unsubscribe();
   }
 
   seleccionarTipo(nuevoTipo: TipoPedido) {
@@ -310,21 +342,7 @@ export class CarritoComponent implements OnInit {
 
   alCambiarTelefono() {
     const tel = this.telefono.replace(/\D/g, '');
-    if (tel.length >= 8) {
-      this.clientesService.lookup(tel).subscribe({
-        next: ({ data }) => {
-          if (data) {
-            this.clienteFrecuente.set(true);
-            if (!this.nombre) this.nombre = data.nombre;
-            if (this.tipo === 'DELIVERY') {
-              if (!this.direccion && data.direccion) this.direccion = data.direccion;
-              if (!this.referencia && data.referencia) this.referencia = data.referencia;
-            }
-          }
-        },
-        error: () => {},
-      });
-    }
+    this.telefonoInput$.next(tel);
   }
 
   confirmar() {

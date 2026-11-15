@@ -397,6 +397,10 @@ export class GastosComponent implements OnInit {
           });
         }
       },
+      error: () => {
+        this.errorMsg.set('Error al verificar sesión de caja');
+        this.guardando.set(false);
+      },
     });
   }
 

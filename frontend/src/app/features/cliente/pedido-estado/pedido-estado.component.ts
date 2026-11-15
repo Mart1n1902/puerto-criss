@@ -84,7 +84,7 @@ import { Subscription } from 'rxjs';
               <p><strong class="text-slate-700">Notas:</strong> {{ pedido()!.notas }}</p>
             }
           </div>
-          @for (item of pedido()!.detalles; track item.producto_id) {
+          @for (item of pedido()!.detalles; track $index) {
             <div class="flex justify-between items-center px-5 py-3">
               <span class="text-slate-700">{{ item.cantidad }}x {{ item.producto.nombre }}</span>
               <span class="font-medium text-slate-800">S/ {{ (item.cantidad * item.precio_unitario).toFixed(2) }}</span>
@@ -154,11 +154,16 @@ export class PedidoEstadoComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit() {
-    this.parametroActual = this.route.snapshot.paramMap.get('id')!;
-    this.cargar(this.parametroActual);
-
-    // Unirse a la sala privada del pedido para escuchar eventos en vivo de forma segura
-    this.socketService.unirseAPedido(this.parametroActual);
+    this.sub.add(
+      this.route.paramMap.subscribe((params) => {
+        const param = params.get('id');
+        if (!param) return;
+        this.parametroActual = param;
+        this.loading.set(true);
+        this.cargar(param);
+        this.socketService.unirseAPedido(param);
+      })
+    );
 
     // Escuchar cambios de estado en vivo vía WebSocket
     this.sub.add(
@@ -180,12 +185,7 @@ export class PedidoEstadoComponent implements OnInit, OnDestroy {
   }
 
   cargar(param: string | number) {
-    const isCode = typeof param === 'string' && (param.includes('PC-') || isNaN(Number(param)));
-    const query$ = isCode
-      ? this.pedidosService.getByCodigo(String(param))
-      : this.pedidosService.getByCodigo(String(param));
-
-    query$.subscribe({
+    this.pedidosService.getByCodigo(String(param)).subscribe({
       next: ({ data }) => {
         this.pedido.set(data);
         if (data.codigo) {
