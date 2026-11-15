@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -67,33 +68,35 @@ import { AuthService } from '../../core/services/auth.service';
 
           </form>
 
-          <!-- Acceso rápido de prueba -->
-          <div class="pt-4 border-t border-slate-700/60">
-            <p class="text-xs text-slate-400 mb-2 font-medium text-center">Acceso rápido para probar:</p>
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                (click)="llenarCredenciales('admin@puertocris.com', 'admin123')"
-                class="text-[11px] bg-slate-900 hover:bg-slate-700 text-cyan-300 border border-slate-700 p-2 rounded-xl text-center font-bold transition-colors"
-              >
-                👑 Admin
-              </button>
-              <button
-                type="button"
-                (click)="llenarCredenciales('cocina@puertocris.com', 'admin123')"
-                class="text-[11px] bg-slate-900 hover:bg-slate-700 text-orange-300 border border-slate-700 p-2 rounded-xl text-center font-bold transition-colors"
-              >
-                👨‍🍳 Cocina
-              </button>
-              <button
-                type="button"
-                (click)="llenarCredenciales('mozo@puertocris.com', 'admin123')"
-                class="text-[11px] bg-slate-900 hover:bg-slate-700 text-green-300 border border-slate-700 p-2 rounded-xl text-center font-bold transition-colors"
-              >
-                🧑‍💼 Mozo
-              </button>
+          @if (!isProduction) {
+            <!-- Acceso rápido de prueba (solo en desarrollo) -->
+            <div class="pt-4 border-t border-slate-700/60">
+              <p class="text-xs text-slate-400 mb-2 font-medium text-center">Acceso rápido para probar:</p>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  (click)="llenarCredenciales('admin@puertocris.com', '123456')"
+                  class="text-[11px] bg-slate-900 hover:bg-slate-700 text-cyan-300 border border-slate-700 p-2 rounded-xl text-center font-bold transition-colors"
+                >
+                  👑 Admin
+                </button>
+                <button
+                  type="button"
+                  (click)="llenarCredenciales('cocina@puertocris.com', '123456')"
+                  class="text-[11px] bg-slate-900 hover:bg-slate-700 text-orange-300 border border-slate-700 p-2 rounded-xl text-center font-bold transition-colors"
+                >
+                  👨‍🍳 Cocina
+                </button>
+                <button
+                  type="button"
+                  (click)="llenarCredenciales('mozo@puertocris.com', '123456')"
+                  class="text-[11px] bg-slate-900 hover:bg-slate-700 text-green-300 border border-slate-700 p-2 rounded-xl text-center font-bold transition-colors"
+                >
+                  🧑‍💼 Mozo
+                </button>
+              </div>
             </div>
-          </div>
+          }
 
         </div>
 
@@ -108,6 +111,7 @@ import { AuthService } from '../../core/services/auth.service';
 export class LoginComponent {
   private auth = inject(AuthService);
 
+  readonly isProduction = environment.production;
   email = '';
   password = '';
   loading = signal(false);

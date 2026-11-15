@@ -100,6 +100,7 @@ import { Subscription } from 'rxjs';
         <a
           [href]="whatsappLink()"
           target="_blank"
+          rel="noopener noreferrer"
           class="w-full flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition-colors shadow-lg shadow-green-500/20"
         >
           <span class="text-xl">📱</span> Compartir por WhatsApp

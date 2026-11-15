@@ -1,9 +1,16 @@
 import jwt from 'jsonwebtoken';
 
+const getJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET no está configurado en las variables de entorno');
+  }
+  return process.env.JWT_SECRET;
+};
+
 export const generateToken = (payload) =>
-  jwt.sign(payload, process.env.JWT_SECRET, {
+  jwt.sign(payload, getJwtSecret(), {
     expiresIn: process.env.JWT_EXPIRES_IN || '8h',
   });
 
 export const verifyToken = (token) =>
-  jwt.verify(token, process.env.JWT_SECRET);
+  jwt.verify(token, getJwtSecret());

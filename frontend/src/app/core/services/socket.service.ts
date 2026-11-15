@@ -54,9 +54,13 @@ export class SocketService {
     }
   }
 
+  salirDeStaff() {
+    this.socket.emit('leave:staff');
+  }
+
   unirseAPedido(codigoOrId: string | number) {
     if (codigoOrId) {
-      this.socket.emit('join:pedido', codigoOrId);
+      this.socket.emit('join:pedido', String(codigoOrId));
     }
   }
 

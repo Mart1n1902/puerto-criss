@@ -6,8 +6,13 @@ import { Rol } from '../models/models';
 export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  const roles: Rol[] = route.data['roles'];
+  const roles: Rol[] = route.data['roles'] ?? [];
+  const currentRol = auth.rol();
 
-  if (auth.isAuthenticated() && roles.includes(auth.rol()!)) return true;
-  return router.createUrlTree(['/login']);
+  if (!auth.isAuthenticated() || !currentRol) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (roles.includes(currentRol)) return true;
+  return router.createUrlTree([auth.getHomeRoute(currentRol)]);
 };

@@ -11,8 +11,19 @@ export const errorHandler = (err, req, res, next) => {
     return res.status(409).json({ success: false, message: 'Ya existe un registro con ese valor' });
   }
 
-  res.status(err.status || 500).json({
+  // Error de Prisma: referencia inválida (FK)
+  if (err.code === 'P2003') {
+    return res.status(400).json({ success: false, message: 'Referencia inválida a un registro relacionado' });
+  }
+
+  const status = err.status || 500;
+  const isProd = process.env.NODE_ENV === 'production';
+  const message = status >= 500 && isProd
+    ? 'Error interno del servidor'
+    : (err.message || 'Error interno del servidor');
+
+  res.status(status).json({
     success: false,
-    message: err.message || 'Error interno del servidor',
+    message,
   });
 };

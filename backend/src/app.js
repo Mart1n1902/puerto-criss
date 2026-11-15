@@ -16,6 +16,9 @@ import reportesRoutes from './routes/reportes.routes.js';
 
 const app = express();
 
+// Confiar en el primer proxy inverso (Netlify/Render/Railway/Nginx) para IP real en rate-limit
+app.set('trust proxy', 1);
+
 // Seguridad HTTP Headers con Helmet
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -52,13 +55,24 @@ const pedidosLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Limitador para búsqueda de clientes por teléfono (Prevenir enumeración de PII)
+const lookupLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutos
+  max: 15, // Máximo 15 búsquedas cada 5 minutos por IP
+  message: { success: false, message: 'Demasiadas consultas de teléfono. Espera un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Rutas
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/productos', productosRoutes);
 app.use('/api/categorias', categoriasRoutes);
-app.use('/api/pedidos', pedidosLimiter, pedidosRoutes);
+app.post('/api/pedidos', pedidosLimiter);
+app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/mesas', mesasRoutes);
+app.get('/api/clientes/lookup', lookupLimiter);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/caja', cajasRoutes);
 app.use('/api/movimientos', movimientosRoutes);

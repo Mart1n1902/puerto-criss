@@ -3,10 +3,14 @@ import { verifyToken } from './utils/jwt.util.js';
 
 let io = null;
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : '*';
+
 export const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: allowedOrigins,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     },
   });
@@ -15,7 +19,7 @@ export const initSocket = (httpServer) => {
     // Unirse a sala de staff (Cocina, Mozos, Admin) con validación de token
     socket.on('join:staff', (token) => {
       try {
-        if (!token) return;
+        if (!token || typeof token !== 'string') return;
         const user = verifyToken(token);
         if (['ADMIN', 'COCINA', 'MOZO'].includes(user.rol)) {
           socket.join('staff');
@@ -25,11 +29,16 @@ export const initSocket = (httpServer) => {
       }
     });
 
-    // Unirse a la sala privada de un pedido específico para seguimiento en vivo
-    socket.on('join:pedido', (codigoOrId) => {
-      if (!codigoOrId) return;
-      const room = `pedido:${String(codigoOrId).toUpperCase().trim()}`;
-      socket.join(room);
+    socket.on('leave:staff', () => {
+      socket.leave('staff');
+    });
+
+    // Unirse a la sala privada de un pedido específico usando solo su código único
+    socket.on('join:pedido', (codigo) => {
+      if (!codigo || typeof codigo !== 'string') return;
+      const normalized = codigo.toUpperCase().trim();
+      if (!/^PC-[A-Z0-9]{4,}$/.test(normalized)) return;
+      socket.join(`pedido:${normalized}`);
     });
 
     socket.on('disconnect', () => {
@@ -65,11 +74,10 @@ export const emitirCambioEstado = (pedido) => {
     // Notificar al personal
     io.to('staff').emit('pedido:cambio_estado', pedido);
 
-    // Notificar al cliente específico
+    // Notificar al cliente específico exclusivamente por código aleatorio
     if (pedido.codigo) {
       io.to(`pedido:${pedido.codigo.toUpperCase()}`).emit('pedido:cambio_estado', pedido);
     }
-    io.to(`pedido:${pedido.id}`).emit('pedido:cambio_estado', pedido);
   }
 };
 

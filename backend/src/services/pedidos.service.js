@@ -59,7 +59,6 @@ export const create = async ({
   referencia,
   notas,
   mesa_id,
-  sesion_caja_id,
   usuario_id,
 }) => {
   if (!detalles || !Array.isArray(detalles) || detalles.length === 0) {
@@ -127,7 +126,13 @@ export const create = async ({
       });
     }
 
-    // 3. Generar código único aleatorio
+    // 3. Vincular sesión de caja activa desde el servidor (no confiar en el cliente)
+    const sesionActiva = await tx.sesionCaja.findFirst({
+      where: { estado: 'ABIERTA' },
+      select: { id: true },
+    });
+
+    // 4. Generar código único aleatorio
     let codigo = generarCodigo();
     let reintentos = 0;
     while (await tx.pedido.findUnique({ where: { codigo } }) && reintentos < 5) {
@@ -135,7 +140,7 @@ export const create = async ({
       reintentos++;
     }
 
-    // 4. Crear el pedido y sus detalles
+    // 5. Crear el pedido y sus detalles
     return tx.pedido.create({
       data: {
         codigo,
@@ -144,8 +149,8 @@ export const create = async ({
         referencia: referencia || null,
         notas: notas || null,
         mesa_id: parsedMesaId,
-        sesion_caja_id: sesion_caja_id ? parseInt(sesion_caja_id) : null,
-        usuario_id: usuario_id ? parseInt(usuario_id) : null,
+        sesion_caja_id: sesionActiva?.id ?? null,
+        usuario_id: usuario_id || null,
         cliente_id: clienteRecord?.id ?? null,
         detalles: {
           create: detallesValidados,

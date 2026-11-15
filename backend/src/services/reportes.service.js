@@ -213,6 +213,12 @@ export const getGastosPorCategoria = async (desde, hasta) => {
   return Object.values(agrupado).sort((a, b) => b.total - a.total);
 };
 
+const sanitizeCsvCell = (value) => {
+  const str = String(value ?? '');
+  const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  return `"${safe.replace(/"/g, '""')}"`;
+};
+
 // ─── Exportación de Ventas a Formato CSV ──────────────────────────────────────
 
 export const exportarVentasCSV = async ({ desde, hasta } = {}) => {
@@ -250,15 +256,15 @@ export const exportarVentasCSV = async ({ desde, hasta } = {}) => {
     return [
       p.id,
       p.codigo || '-',
-      `"${fecha}"`,
+      sanitizeCsvCell(fecha),
       p.tipo,
-      `"${(p.cliente?.nombre || 'Anonimo').replace(/"/g, '""')}"`,
-      `"${p.cliente?.telefono || '-'}"`,
-      `"${destino.replace(/"/g, '""')}"`,
-      `"${productosStr.replace(/"/g, '""')}"`,
+      sanitizeCsvCell(p.cliente?.nombre || 'Anonimo'),
+      sanitizeCsvCell(p.cliente?.telefono || '-'),
+      sanitizeCsvCell(destino),
+      sanitizeCsvCell(productosStr),
       total,
       p.estado,
-      `"${metodoPago}"`,
+      sanitizeCsvCell(metodoPago),
     ].join(',');
   });
 

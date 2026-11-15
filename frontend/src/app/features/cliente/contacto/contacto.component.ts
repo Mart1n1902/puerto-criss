@@ -18,7 +18,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       <!-- Info de contacto -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-100">
 
-        <a href="https://maps.app.goo.gl/kJ7CxhHT16JyuNsT9" target="_blank"
+        <a href="https://maps.app.goo.gl/kJ7CxhHT16JyuNsT9" target="_blank" rel="noopener noreferrer"
           class="flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors">
           <div class="w-11 h-11 bg-red-100 text-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
             <app-icon name="map-pin" [size]="22" />
@@ -29,7 +29,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           </div>
         </a>
 
-        <a href="https://wa.me/51999999999" target="_blank"
+        <a href="https://wa.me/51999999999" target="_blank" rel="noopener noreferrer"
           class="flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors">
           <div class="w-11 h-11 bg-green-100 text-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
             <app-icon name="whatsapp" [size]="22" />
@@ -73,6 +73,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           <a
             href="https://maps.app.goo.gl/kJ7CxhHT16JyuNsT9"
             target="_blank"
+            rel="noopener noreferrer"
             class="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors"
           >
             🗺️ Abrir en Google Maps
