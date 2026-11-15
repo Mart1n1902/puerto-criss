@@ -14,78 +14,81 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule, BadgeEstadoComponent],
   template: `
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-6">
+    <div class="min-h-screen bg-slate-950 text-slate-100 pb-10">
 
       <!-- Header -->
-      <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-orange-500/20">
-            🪑
+      <header class="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-white/10 px-4 md:px-6 py-4 mb-6">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-orange-500/25">
+              🪑
+            </div>
+            <div>
+              <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">Salón y Mesas</h1>
+              <p class="text-slate-400 text-xs sm:text-sm">
+                Mozo: <span class="text-cyan-400 font-semibold">{{ auth.user()?.nombre }}</span> · <span class="font-mono">{{ hora() }}</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 class="text-2xl font-black text-white">Salón y Mesas — Puerto Criss</h1>
-            <p class="text-slate-400 text-sm">
-              Mozo: <span class="text-cyan-400 font-medium">{{ auth.user()?.nombre }}</span> · {{ hora() }}
-            </p>
-          </div>
-        </div>
 
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1.5 text-xs text-green-400 bg-green-950/40 px-3 py-2 rounded-xl border border-green-800/40">
-            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-            En vivo
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 px-3 py-2 rounded-full border border-emerald-500/25 font-semibold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              En vivo
+            </div>
+            <button
+              (click)="modalNuevaMesa.set(true)"
+              class="bg-white/10 hover:bg-white/15 text-white border border-white/10 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5"
+            >
+              <span>+</span> Nueva Mesa
+            </button>
+            <button
+              (click)="cargar()"
+              aria-label="Actualizar mesas"
+              class="bg-cyan-400 hover:bg-cyan-300 text-slate-950 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition-colors shadow-md shadow-cyan-500/20"
+            >
+              🔄
+            </button>
+            <button
+              (click)="auth.logout()"
+              class="text-slate-400 hover:text-red-400 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl hover:bg-white/5 transition-colors"
+            >
+              Salir
+            </button>
           </div>
-          <button
-            (click)="modalNuevaMesa.set(true)"
-            class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
-          >
-            <span>+</span> Nueva Mesa
-          </button>
-          <button
-            (click)="cargar()"
-            class="bg-cyan-500 hover:bg-cyan-400 text-slate-900 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors"
-          >
-            🔄
-          </button>
-          <button
-            (click)="auth.logout()"
-            class="text-slate-400 hover:text-red-400 text-sm font-medium px-3 py-2 transition-colors"
-          >
-            Salir
-          </button>
         </div>
-      </div>
+      </header>
 
       <!-- Resumen y Filtros -->
-      <div class="max-w-6xl mx-auto mb-6">
-        <div class="flex items-center gap-2 overflow-x-auto pb-2">
+      <div class="max-w-6xl mx-auto px-4 md:px-6 mb-6">
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
             (click)="filtro.set('TODAS')"
-            [class]="filtro() === 'TODAS' ? 'bg-cyan-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-400 hover:text-white'"
-            class="px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-2"
+            [class]="filtro() === 'TODAS' ? 'bg-cyan-400 text-slate-950 font-black shadow-lg shadow-cyan-500/20' : 'bg-slate-900 text-slate-400 border border-white/10 hover:text-white'"
+            class="px-4 py-2 rounded-full text-xs sm:text-sm transition-all flex items-center gap-2 flex-shrink-0"
           >
             Todas <span>({{ mesas().length }})</span>
           </button>
           <button
             (click)="filtro.set('LIBRE')"
-            [class]="filtro() === 'LIBRE' ? 'bg-green-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-400 hover:text-white'"
-            class="px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-2"
+            [class]="filtro() === 'LIBRE' ? 'bg-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20' : 'bg-slate-900 text-slate-400 border border-white/10 hover:text-white'"
+            class="px-4 py-2 rounded-full text-xs sm:text-sm transition-all flex items-center gap-2 flex-shrink-0"
           >
-            <span class="w-2 h-2 rounded-full bg-green-400"></span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
             Libres <span>({{ totalPorEstado('LIBRE') }})</span>
           </button>
           <button
             (click)="filtro.set('OCUPADA')"
-            [class]="filtro() === 'OCUPADA' ? 'bg-orange-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-400 hover:text-white'"
-            class="px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-2"
+            [class]="filtro() === 'OCUPADA' ? 'bg-orange-400 text-slate-950 font-black shadow-lg shadow-orange-500/20' : 'bg-slate-900 text-slate-400 border border-white/10 hover:text-white'"
+            class="px-4 py-2 rounded-full text-xs sm:text-sm transition-all flex items-center gap-2 flex-shrink-0"
           >
             <span class="w-2 h-2 rounded-full bg-orange-400"></span>
             Ocupadas <span>({{ totalPorEstado('OCUPADA') }})</span>
           </button>
           <button
             (click)="filtro.set('RESERVADA')"
-            [class]="filtro() === 'RESERVADA' ? 'bg-purple-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-400 hover:text-white'"
-            class="px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-2"
+            [class]="filtro() === 'RESERVADA' ? 'bg-purple-400 text-slate-950 font-black shadow-lg shadow-purple-500/20' : 'bg-slate-900 text-slate-400 border border-white/10 hover:text-white'"
+            class="px-4 py-2 rounded-full text-xs sm:text-sm transition-all flex items-center gap-2 flex-shrink-0"
           >
             <span class="w-2 h-2 rounded-full bg-purple-400"></span>
             Reservadas <span>({{ totalPorEstado('RESERVADA') }})</span>
@@ -94,41 +97,41 @@ import { Subscription } from 'rxjs';
       </div>
 
       <!-- Grilla de Mesas -->
-      <div class="max-w-6xl mx-auto">
+      <div class="max-w-6xl mx-auto px-4 md:px-6">
         @if (loading()) {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @for (i of [1,2,3,4,5,6]; track i) {
-              <div class="bg-slate-800/60 rounded-2xl h-44 animate-pulse border border-slate-700"></div>
+              <div class="bg-slate-900/60 rounded-3xl h-48 animate-pulse border border-white/10"></div>
             }
           </div>
         } @else {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @for (mesa of mesasFiltradas(); track mesa.id) {
               <div
-                class="rounded-2xl p-5 border transition-all duration-200 flex flex-col justify-between"
+                class="rounded-3xl p-5 border transition-all duration-200 flex flex-col justify-between bg-slate-900/90 hover:-translate-y-0.5"
                 [ngClass]="{
-                  'bg-slate-800/90 border-green-500/30 hover:border-green-500/60 shadow-lg shadow-green-950/20': mesa.estado === 'LIBRE',
-                  'bg-slate-800/90 border-orange-500/40 hover:border-orange-500/70 shadow-lg shadow-orange-950/30': mesa.estado === 'OCUPADA',
-                  'bg-slate-800/90 border-purple-500/40 hover:border-purple-500/70 shadow-lg shadow-purple-950/30': mesa.estado === 'RESERVADA'
+                  'border-emerald-500/30 hover:border-emerald-400/60 shadow-xl shadow-emerald-950/20': mesa.estado === 'LIBRE',
+                  'border-orange-500/40 hover:border-orange-400/70 shadow-xl shadow-orange-950/25': mesa.estado === 'OCUPADA',
+                  'border-purple-500/40 hover:border-purple-400/70 shadow-xl shadow-purple-950/25': mesa.estado === 'RESERVADA'
                 }"
               >
                 <!-- Top card -->
                 <div>
-                  <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-start justify-between mb-4">
                     <div>
-                      <h3 class="text-xl font-black text-white">{{ mesa.numero }}</h3>
-                      <p class="text-xs text-slate-400">
+                      <h3 class="text-2xl font-black text-white tracking-tight">{{ mesa.numero }}</h3>
+                      <p class="text-xs text-slate-400 mt-0.5">
                         @if (mesa.estado === 'LIBRE') { Disponible para clientes }
                         @else if (mesa.estado === 'OCUPADA') { En atención }
                         @else { Reserva programada }
                       </p>
                     </div>
                     <span
-                      class="px-3 py-1 rounded-full text-xs font-black tracking-wide"
+                      class="px-3 py-1 rounded-full text-[11px] font-black tracking-wide"
                       [ngClass]="{
-                        'bg-green-500/20 text-green-400 border border-green-500/30': mesa.estado === 'LIBRE',
-                        'bg-orange-500/20 text-orange-400 border border-orange-500/30 animate-pulse': mesa.estado === 'OCUPADA',
-                        'bg-purple-500/20 text-purple-400 border border-purple-500/30': mesa.estado === 'RESERVADA'
+                        'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30': mesa.estado === 'LIBRE',
+                        'bg-orange-500/15 text-orange-300 border border-orange-500/30 animate-pulse': mesa.estado === 'OCUPADA',
+                        'bg-purple-500/15 text-purple-300 border border-purple-500/30': mesa.estado === 'RESERVADA'
                       }"
                     >
                       {{ mesa.estado }}
@@ -137,25 +140,25 @@ import { Subscription } from 'rxjs';
 
                   <!-- Pedidos activos de la mesa -->
                   @if (getPedidoActivo(mesa.id); as pedido) {
-                    <div class="bg-slate-900/80 rounded-xl p-3 mb-4 border border-slate-700/60 space-y-1.5">
-                      <div class="flex items-center justify-between text-xs font-bold text-slate-300">
-                        <span>Comanda #{{ pedido.id }}</span>
+                    <div class="bg-slate-950/80 rounded-2xl p-3.5 mb-4 border border-white/10 space-y-1.5">
+                      <div class="flex items-center justify-between text-xs font-bold text-slate-200">
+                        <span class="font-mono text-cyan-300">Comanda #{{ pedido.id }}</span>
                         <app-badge-estado [estado]="pedido.estado" />
                       </div>
                       <p class="text-xs text-slate-400 truncate">
-                        {{ pedido.detalles.length }} producto(s) · S/ {{ totalPedido(pedido) }}
+                        {{ pedido.detalles.length }} producto(s) · <span class="text-white font-bold">S/ {{ totalPedido(pedido) }}</span>
                       </p>
                     </div>
                   }
                 </div>
 
                 <!-- Acciones de la mesa -->
-                <div class="pt-3 border-t border-slate-700/50 space-y-2">
+                <div class="pt-3.5 border-t border-white/10 space-y-2.5">
                   <div class="flex items-center justify-between">
-                    <span class="text-xs text-slate-400 font-medium">Cambiar estado:</span>
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Estado rápido</span>
                     <button
                       (click)="abrirModalQR(mesa)"
-                      class="text-xs bg-slate-700 hover:bg-slate-600 text-cyan-300 font-bold px-2.5 py-1 rounded-lg border border-slate-600 flex items-center gap-1"
+                      class="text-xs bg-white/5 hover:bg-white/10 text-cyan-300 font-bold px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 transition-colors"
                       title="Ver enlace QR de la mesa"
                     >
                       <span>📲</span> QR Mesa
@@ -166,7 +169,7 @@ import { Subscription } from 'rxjs';
                     @if (mesa.estado !== 'LIBRE') {
                       <button
                         (click)="cambiarEstadoMesa(mesa, 'LIBRE')"
-                        class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-green-500/30"
+                        class="flex-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-extrabold py-2.5 rounded-xl transition-colors text-center border border-emerald-500/30"
                       >
                         Libre
                       </button>
@@ -174,7 +177,7 @@ import { Subscription } from 'rxjs';
                     @if (mesa.estado !== 'OCUPADA') {
                       <button
                         (click)="cambiarEstadoMesa(mesa, 'OCUPADA')"
-                        class="flex-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-orange-500/30"
+                        class="flex-1 bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 text-xs font-extrabold py-2.5 rounded-xl transition-colors text-center border border-orange-500/30"
                       >
                         Ocupada
                       </button>
@@ -182,7 +185,7 @@ import { Subscription } from 'rxjs';
                     @if (mesa.estado !== 'RESERVADA') {
                       <button
                         (click)="cambiarEstadoMesa(mesa, 'RESERVADA')"
-                        class="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-bold py-2 rounded-xl transition-colors text-center border border-purple-500/30"
+                        class="flex-1 bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 text-xs font-extrabold py-2.5 rounded-xl transition-colors text-center border border-purple-500/30"
                       >
                         Reservada
                       </button>
