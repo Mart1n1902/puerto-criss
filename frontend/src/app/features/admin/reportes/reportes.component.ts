@@ -1,7 +1,6 @@
 import { Component, inject, signal, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportesService } from '../../../core/services/reportes.service';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Chart, registerables } from 'chart.js';
 
@@ -397,7 +396,8 @@ export class ReportesComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  exportarExcel() {
+  async exportarExcel() {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
     if (this.kpis()) {

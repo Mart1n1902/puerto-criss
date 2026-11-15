@@ -1,10 +1,12 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ReportesService } from '../../../core/services/reportes.service';
 import { PedidosService } from '../../../core/services/pedidos.service';
 import { BadgeEstadoComponent } from '../../../shared/components/badge-estado/badge-estado.component';
 import { RouterLink } from '@angular/router';
 import { CajaService } from '../../../core/services/caja.service';
+import { SocketService } from '../../../core/services/socket.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -282,10 +284,12 @@ import { CajaService } from '../../../core/services/caja.service';
     }
   `,
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private reportesService = inject(ReportesService);
   private pedidosService = inject(PedidosService);
   private cajaService = inject(CajaService);
+  private socketService = inject(SocketService);
+  private subs = new Subscription();
 
   dashboard = signal<any>(null);
   pedidos = signal<any[]>([]);
@@ -301,7 +305,31 @@ export class DashboardComponent implements OnInit {
   metricas = signal<any[]>([]);
 
   ngOnInit() {
+    this.socketService.unirseAStaff();
     this.cargarDatos();
+
+    this.subs.add(
+      this.socketService.nuevoPedido$.subscribe((nuevo) => {
+        this.pedidos.update((lista) =>
+          lista.some((p) => p.id === nuevo.id) ? lista : [nuevo, ...lista]
+        );
+      })
+    );
+
+    this.subs.add(
+      this.socketService.cambioEstado$.subscribe((actualizado) => {
+        this.pedidos.update((lista) =>
+          lista.map((p) => (p.id === actualizado.id ? actualizado : p))
+        );
+        if (actualizado.estado === 'ENTREGADO') {
+          this.cargarDatos();
+        }
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subs.unsubscribe();
   }
 
   cargarDatos() {

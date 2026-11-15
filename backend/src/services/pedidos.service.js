@@ -19,11 +19,12 @@ const generarCodigo = () => {
   return result;
 };
 
-export const getAll = (filtros = {}) =>
+export const getAll = ({ limit, ...where } = {}) =>
   prisma.pedido.findMany({
-    where: filtros,
+    where,
     include: pedidoInclude,
     orderBy: { createdAt: 'desc' },
+    take: Math.min(Math.max(parseInt(limit) || 200, 1), 500),
   });
 
 export const getById = (param) => {

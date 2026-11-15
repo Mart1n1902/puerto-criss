@@ -1,7 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, SlicePipe } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { PedidosService } from '../../../core/services/pedidos.service';
+import { SocketService } from '../../../core/services/socket.service';
 import { BadgeEstadoComponent } from '../../../shared/components/badge-estado/badge-estado.component';
 import { Pedido, EstadoPedido } from '../../../core/models/models';
 
@@ -188,8 +190,10 @@ import { Pedido, EstadoPedido } from '../../../core/models/models';
     </div>
   `,
 })
-export class PedidosComponent implements OnInit {
+export class PedidosComponent implements OnInit, OnDestroy {
   private pedidosService = inject(PedidosService);
+  private socketService = inject(SocketService);
+  private subs = new Subscription();
 
   pedidos = signal<Pedido[]>([]);
   loading = signal(true);
@@ -210,7 +214,35 @@ export class PedidosComponent implements OnInit {
     { valor: 'CANCELADO', label: '❌ Cancelar' },
   ];
 
-  ngOnInit() { this.cargar(); }
+  ngOnInit() {
+    this.socketService.unirseAStaff();
+    this.cargar();
+
+    this.subs.add(
+      this.socketService.nuevoPedido$.subscribe((nuevo) => {
+        const filtro = this.filtroActivo();
+        if (!filtro || nuevo.estado === filtro) {
+          this.pedidos.update((lista) =>
+            lista.some((p) => p.id === nuevo.id) ? lista : [nuevo, ...lista]
+          );
+        }
+      })
+    );
+
+    this.subs.add(
+      this.socketService.cambioEstado$.subscribe((actualizado) => {
+        const filtro = this.filtroActivo();
+        this.pedidos.update((lista) => {
+          const filtrado = lista.map((p) => (p.id === actualizado.id ? actualizado : p));
+          return filtro ? filtrado.filter((p) => p.estado === filtro) : filtrado;
+        });
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subs.unsubscribe();
+  }
 
   cargar() {
     this.loading.set(true);

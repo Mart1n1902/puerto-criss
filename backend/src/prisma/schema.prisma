@@ -30,6 +30,7 @@ model Cliente {
   createdAt DateTime @default(now()) @map("created_at")
   pedidos   Pedido[]
 
+  @@index([telefono])
   @@map("clientes")
 }
 
@@ -77,6 +78,7 @@ model SesionCaja {
   pedidos        Pedido[]
   movimientos    MovimientoCaja[]
 
+  @@index([estado])
   @@map("sesiones_caja")
 }
 
@@ -101,6 +103,10 @@ model Pedido {
   detalles       DetallePedido[]
   pagos          Pago[]
 
+  @@index([createdAt])
+  @@index([estado])
+  @@index([sesion_caja_id])
+  @@index([cliente_id])
   @@map("pedidos")
 }
 
@@ -146,6 +152,8 @@ model MovimientoCaja {
   sesion_caja             SesionCaja          @relation(fields: [sesion_caja_id], references: [id])
   categoria_movimiento    CategoriaMovimiento @relation(fields: [categoria_movimiento_id], references: [id])
 
+  @@index([createdAt])
+  @@index([sesion_caja_id])
   @@map("movimientos_caja")
 }
 

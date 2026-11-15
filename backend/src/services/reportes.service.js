@@ -33,24 +33,25 @@ const parseFechaValida = (raw, campo) => {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const calcularVentas = async (desde, hasta) => {
-  const pedidos = await prisma.pedido.findMany({
-    where: { createdAt: { gte: desde, lte: hasta }, estado: { not: 'CANCELADO' } },
-    include: { detalles: true },
-  });
-  return pedidos.reduce(
-    (sum, p) => sum + p.detalles.reduce((s, d) => s + d.cantidad * parseFloat(d.precio_unitario), 0),
-    0
-  );
+  const res = await prisma.$queryRaw`
+    SELECT COALESCE(SUM(dp.cantidad * dp.precio_unitario), 0) AS total
+    FROM detalle_pedido dp
+    INNER JOIN pedidos p ON p.id = dp.pedido_id
+    WHERE p.created_at >= ${desde} AND p.created_at <= ${hasta}
+      AND p.estado <> 'CANCELADO'
+  `;
+  return Number(res[0]?.total ?? 0);
 };
 
 const calcularGastos = async (desde, hasta) => {
-  const movs = await prisma.movimientoCaja.findMany({
-    where: { createdAt: { gte: desde, lte: hasta } },
-    include: { categoria_movimiento: true },
-  });
-  return movs
-    .filter((m) => m.categoria_movimiento.tipo === 'EGRESO')
-    .reduce((sum, m) => sum + parseFloat(m.monto), 0);
+  const res = await prisma.$queryRaw`
+    SELECT COALESCE(SUM(mc.monto), 0) AS total
+    FROM movimientos_caja mc
+    INNER JOIN categorias_movimiento cm ON cm.id = mc.categoria_movimiento_id
+    WHERE mc.created_at >= ${desde} AND mc.created_at <= ${hasta}
+      AND cm.tipo = 'EGRESO'
+  `;
+  return Number(res[0]?.total ?? 0);
 };
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -167,32 +168,29 @@ export const getVentasPorDia = async (dias = 7) => {
 // ─── Comparativa semanal (últimas N semanas) ──────────────────────────────────
 
 export const getComparativaSemanal = async (semanas = 4) => {
-  const resultado = [];
+  const n = Math.min(Math.max(parseInt(semanas) || 4, 1), 24);
   const ahora = new Date();
+  const baseSemana = inicioSemana(ahora);
 
-  for (let i = semanas - 1; i >= 0; i--) {
-    const inicioS = new Date(inicioSemana(ahora));
-    inicioS.setDate(inicioS.getDate() - i * 7);
-    const finS = new Date(inicioS);
-    finS.setDate(finS.getDate() + 6);
-    finS.setHours(23, 59, 59, 999);
+  const promesas = Array.from({ length: n }, (_, idx) => {
+    const i = n - 1 - idx;
+    const inicioS = new Date(baseSemana.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+    const finS = new Date(inicioS.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
 
-    const [ventas, gastos] = await Promise.all([
+    return Promise.all([
       calcularVentas(inicioS, finS),
       calcularGastos(inicioS, finS),
-    ]);
-
-    resultado.push({
-      semana: `Sem ${semanas - i}`,
-      desde: inicioS.toISOString().split('T')[0],
-      hasta: finS.toISOString().split('T')[0],
+    ]).then(([ventas, gastos]) => ({
+      semana: `Sem ${idx + 1}`,
+      desde: getLimaDateStr(inicioS),
+      hasta: getLimaDateStr(finS),
       ventas,
       gastos,
       ganancia: ventas - gastos,
-    });
-  }
+    }));
+  });
 
-  return resultado;
+  return Promise.all(promesas);
 };
 
 // ─── Gastos por categoría ─────────────────────────────────────────────────────

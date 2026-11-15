@@ -11,11 +11,17 @@ export const getKpis = async (req, res, next) => {
 };
 
 export const getVentasPorDia = async (req, res, next) => {
-  try { ok(res, await svc.getVentasPorDia(+req.query.dias || 7)); } catch (err) { next(err); }
+  try {
+    const dias = Math.min(Math.max(parseInt(req.query.dias) || 7, 1), 90);
+    ok(res, await svc.getVentasPorDia(dias));
+  } catch (err) { next(err); }
 };
 
 export const getComparativaSemanal = async (req, res, next) => {
-  try { ok(res, await svc.getComparativaSemanal(+req.query.semanas || 4)); } catch (err) { next(err); }
+  try {
+    const semanas = Math.min(Math.max(parseInt(req.query.semanas) || 4, 1), 24);
+    ok(res, await svc.getComparativaSemanal(semanas));
+  } catch (err) { next(err); }
 };
 
 export const getGastosPorCategoria = async (req, res, next) => {
