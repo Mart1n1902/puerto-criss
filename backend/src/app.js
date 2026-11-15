@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import prisma from './prisma/client.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 
 import authRoutes from './routes/auth.routes.js';
@@ -62,6 +63,20 @@ const lookupLimiter = rateLimit({
   message: { success: false, message: 'Demasiadas consultas de teléfono. Espera un momento.' },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// Healthcheck para monitoreo y balanceadores de carga
+app.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      uptime: Math.round(process.uptime()),
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    res.status(503).json({ status: 'error', message: 'Base de datos no disponible' });
+  }
 });
 
 // Rutas

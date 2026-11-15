@@ -1,5 +1,14 @@
 import Groq from 'groq-sdk';
 
+let groqClient = null;
+const getGroqClient = () => {
+  if (!process.env.GROQ_API_KEY) return null;
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  }
+  return groqClient;
+};
+
 export const generarResumen = async (kpis, topProductos, comparativa) => {
   const top = topProductos?.slice(0, 3).map((p) => `${p.nombre} (${p._sum.cantidad} vendidos)`).join(', ') || 'sin datos';
 
@@ -38,9 +47,16 @@ ${variacion ? `COMPARADO CON LA SEMANA PASADA: las ventas ${+variacion >= 0 ? 's
 Escribe el resumen en español, de forma directa y positiva cuando corresponda. Si hay pérdidas, menciona que hay que revisar los gastos sin alarmar.
 `;
 
+  const fallbackResumen = () => {
+    const estadoHoy = kpis.dia.ganancia >= 0 ? 'ganancia' : 'pérdida';
+    return `Hoy registramos S/ ${kpis.dia.ventas.toFixed(2)} en ventas y S/ ${kpis.dia.gastos.toFixed(2)} en gastos, cerrando con una ${estadoHoy} de S/ ${Math.abs(kpis.dia.ganancia).toFixed(2)}. ${top !== 'sin datos' ? `Los platos más pedidos fueron: ${top}.` : ''} En lo que va del mes acumulamos S/ ${kpis.mes.ventas.toFixed(2)} en ventas.`;
+  };
+
   try {
-    const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const response = await groqClient.chat.completions.create({
+    const client = getGroqClient();
+    if (!client) return fallbackResumen();
+
+    const response = await client.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
@@ -50,8 +66,6 @@ Escribe el resumen en español, de forma directa y positiva cuando corresponda. 
     return response.choices[0]?.message?.content || 'No se pudo generar el resumen.';
   } catch (error) {
     console.error('Error al generar resumen con IA:', error?.message || error);
-    // Resumen local de contingencia
-    const estadoHoy = kpis.dia.ganancia >= 0 ? 'ganancia' : 'pérdida';
-    return `Hoy registramos S/ ${kpis.dia.ventas.toFixed(2)} en ventas y S/ ${kpis.dia.gastos.toFixed(2)} en gastos, cerrando con una ${estadoHoy} de S/ ${Math.abs(kpis.dia.ganancia).toFixed(2)}. ${top !== 'sin datos' ? `Los platos más pedidos fueron: ${top}.` : ''} En lo que va del mes acumulamos S/ ${kpis.mes.ventas.toFixed(2)} en ventas.`;
+    return fallbackResumen();
   }
 };
