@@ -294,8 +294,12 @@ export class GastosComponent implements OnInit {
 
   parseFloat = parseFloat;
 
+  private toLocalDateStr(d: Date = new Date()): string {
+    return d.toLocaleDateString('en-CA');
+  }
+
   nuevoGasto: any = {
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: this.toLocalDateStr(),
     categoria_movimiento_id: '',
     descripcion: '',
     monto: null,
@@ -303,7 +307,7 @@ export class GastosComponent implements OnInit {
 
   filtro = {
     desde: this.inicioSemana(),
-    hasta: new Date().toISOString().split('T')[0],
+    hasta: this.toLocalDateStr(),
   };
 
   totalGastos = signal(0);
@@ -372,7 +376,7 @@ export class GastosComponent implements OnInit {
           }).subscribe({
             next: () => {
               this.nuevoGasto = {
-                fecha: new Date().toISOString().split('T')[0],
+                fecha: this.toLocalDateStr(),
                 categoria_movimiento_id: '',
                 descripcion: '',
                 monto: null,
@@ -413,6 +417,6 @@ export class GastosComponent implements OnInit {
     const d = new Date();
     const dia = d.getDay();
     d.setDate(d.getDate() - (dia === 0 ? 6 : dia - 1));
-    return d.toISOString().split('T')[0];
+    return this.toLocalDateStr(d);
   }
 }

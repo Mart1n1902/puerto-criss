@@ -51,6 +51,16 @@ export const getByCodigo = (codigo) =>
     include: pedidoInclude,
   });
 
+const TIPOS_VALIDOS = ['DELIVERY', 'RECOJO', 'MESA'];
+const METODOS_PAGO_VALIDOS = ['EFECTIVO', 'YAPE', 'TARJETA'];
+const TRANSICIONES_VALIDAS = {
+  PENDIENTE: ['PREPARANDO', 'LISTO', 'ENTREGADO', 'CANCELADO'],
+  PREPARANDO: ['LISTO', 'ENTREGADO', 'CANCELADO'],
+  LISTO: ['ENTREGADO', 'CANCELADO'],
+  ENTREGADO: [],
+  CANCELADO: [],
+};
+
 export const create = async ({
   cliente,
   detalles,
@@ -61,31 +71,41 @@ export const create = async ({
   mesa_id,
   usuario_id,
 }) => {
+  if (!TIPOS_VALIDOS.includes(tipo)) {
+    throw { status: 400, message: `Tipo de pedido inválido. Permitidos: ${TIPOS_VALIDOS.join(', ')}` };
+  }
   if (!detalles || !Array.isArray(detalles) || detalles.length === 0) {
     throw { status: 400, message: 'El pedido debe incluir al menos un producto' };
   }
 
-  // SEGURIDAD: Obtener precios oficiales desde la base de datos para evitar manipulación de precios desde el cliente
-  const productIds = detalles.map((d) => parseInt(d.producto_id)).filter((id) => !isNaN(id));
+  // Agrupar cantidades por producto_id para evitar colisión en la clave compuesta (pedido_id, producto_id)
+  const cantidadesPorProducto = new Map();
+  for (const d of detalles) {
+    const prodId = parseInt(d.producto_id);
+    if (!Number.isInteger(prodId) || prodId <= 0) {
+      throw { status: 400, message: `Producto ID inválido: ${d.producto_id}` };
+    }
+    const cantidad = Math.max(1, parseInt(d.cantidad) || 1);
+    cantidadesPorProducto.set(prodId, (cantidadesPorProducto.get(prodId) || 0) + cantidad);
+  }
+
+  // SEGURIDAD: Obtener precios oficiales y verificar disponibilidad desde la base de datos
+  const productIds = Array.from(cantidadesPorProducto.keys());
   const productosEnDB = await prisma.producto.findMany({
-    where: { id: { in: productIds } },
+    where: { id: { in: productIds }, disponible: true },
   });
 
   const productosMap = new Map(productosEnDB.map((p) => [p.id, p]));
 
-  const detallesValidados = detalles.map((d) => {
-    const prodId = parseInt(d.producto_id);
+  const detallesValidados = productIds.map((prodId) => {
     const prod = productosMap.get(prodId);
     if (!prod) {
-      throw { status: 400, message: `El producto ID ${d.producto_id} no existe o no está disponible` };
+      throw { status: 400, message: `El producto ID ${prodId} no existe o no está disponible` };
     }
-    const cantidad = Math.max(1, parseInt(d.cantidad) || 1);
-    const precioUnitario = parseFloat(prod.precio_actual);
-
     return {
       producto_id: prodId,
-      cantidad,
-      precio_unitario: precioUnitario,
+      cantidad: cantidadesPorProducto.get(prodId),
+      precio_unitario: parseFloat(prod.precio_actual),
     };
   });
 
@@ -118,8 +138,12 @@ export const create = async ({
 
     const parsedMesaId = mesa_id ? parseInt(mesa_id) : null;
 
-    // 2. Si se asigna a una mesa, marcarla como ocupada
+    // 2. Verificar mesa y marcarla como ocupada si corresponde
     if (parsedMesaId) {
+      const mesa = await tx.mesa.findUnique({ where: { id: parsedMesaId } });
+      if (!mesa) {
+        throw { status: 404, message: 'La mesa seleccionada no existe' };
+      }
       await tx.mesa.update({
         where: { id: parsedMesaId },
         data: { estado: 'OCUPADA' },
@@ -135,9 +159,12 @@ export const create = async ({
     // 4. Generar código único aleatorio
     let codigo = generarCodigo();
     let reintentos = 0;
-    while (await tx.pedido.findUnique({ where: { codigo } }) && reintentos < 5) {
+    while (await tx.pedido.findUnique({ where: { codigo } }) && reintentos < 10) {
       codigo = generarCodigo();
       reintentos++;
+    }
+    if (await tx.pedido.findUnique({ where: { codigo } })) {
+      throw { status: 500, message: 'No se pudo generar un código único para el pedido, intenta nuevamente' };
     }
 
     // 5. Crear el pedido y sus detalles
@@ -167,46 +194,87 @@ export const create = async ({
 };
 
 export const cambiarEstado = async (id, estado) => {
+  if (!Object.prototype.hasOwnProperty.call(TRANSICIONES_VALIDAS, estado)) {
+    throw { status: 400, message: `Estado de pedido inválido: ${estado}` };
+  }
+
   const pedido = await prisma.$transaction(async (tx) => {
+    const actual = await tx.pedido.findUniqueOrThrow({
+      where: { id },
+      select: { id: true, estado: true, mesa_id: true, sesion_caja_id: true },
+    });
+
+    if (actual.estado === estado) {
+      return tx.pedido.findUniqueOrThrow({ where: { id }, include: pedidoInclude });
+    }
+
+    if (!TRANSICIONES_VALIDAS[actual.estado].includes(estado)) {
+      throw { status: 400, message: `No se puede cambiar un pedido de ${actual.estado} a ${estado}` };
+    }
+
     const ped = await tx.pedido.update({
       where: { id },
       data: { estado },
       include: pedidoInclude,
     });
 
-    // Al entregar, registrar ingreso automático en caja si hay sesión activa y no existe ya un registro
-    if (estado === 'ENTREGADO' && ped.sesion_caja_id) {
-      const total = ped.detalles.reduce(
-        (sum, d) => sum + d.cantidad * parseFloat(d.precio_unitario),
-        0
-      );
-
-      const movExistente = await tx.movimientoCaja.findFirst({
+    // Liberar mesa si el pedido finaliza y no quedan otros pedidos activos en esa mesa
+    if ((estado === 'ENTREGADO' || estado === 'CANCELADO') && ped.mesa_id) {
+      const otrosActivos = await tx.pedido.count({
         where: {
-          sesion_caja_id: ped.sesion_caja_id,
-          descripcion: `Pedido #${id}`,
+          mesa_id: ped.mesa_id,
+          id: { not: ped.id },
+          estado: { notIn: ['ENTREGADO', 'CANCELADO'] },
         },
       });
-
-      if (!movExistente && total > 0) {
-        const catIngreso = await tx.categoriaMovimiento.findFirst({
-          where: { tipo: 'INGRESO' },
+      if (otrosActivos === 0) {
+        await tx.mesa.update({
+          where: { id: ped.mesa_id },
+          data: { estado: 'LIBRE' },
         });
-        if (catIngreso) {
-          await tx.movimientoCaja.create({
-            data: {
-              sesion_caja_id: ped.sesion_caja_id,
-              categoria_movimiento_id: catIngreso.id,
-              monto: total,
-              descripcion: `Pedido #${id}`,
-            },
+      }
+    }
+
+    // Al entregar, registrar ingreso automático en caja si la sesión sigue abierta y no existe ya un registro
+    if (estado === 'ENTREGADO' && ped.sesion_caja_id) {
+      const sesion = await tx.sesionCaja.findUnique({
+        where: { id: ped.sesion_caja_id },
+        select: { estado: true },
+      });
+
+      if (sesion?.estado === 'ABIERTA') {
+        const total = ped.detalles.reduce(
+          (sum, d) => sum + d.cantidad * parseFloat(d.precio_unitario),
+          0
+        );
+
+        const movExistente = await tx.movimientoCaja.findFirst({
+          where: {
+            sesion_caja_id: ped.sesion_caja_id,
+            descripcion: `Pedido #${id}`,
+          },
+        });
+
+        if (!movExistente && total > 0) {
+          const catIngreso = await tx.categoriaMovimiento.findFirst({
+            where: { tipo: 'INGRESO' },
           });
+          if (catIngreso) {
+            await tx.movimientoCaja.create({
+              data: {
+                sesion_caja_id: ped.sesion_caja_id,
+                categoria_movimiento_id: catIngreso.id,
+                monto: total,
+                descripcion: `Pedido #${id}`,
+              },
+            });
+          }
         }
       }
     }
 
     return ped;
-  });
+  }, { isolationLevel: 'Serializable' });
 
   // Notificar cambio de estado a cliente y pantallas en tiempo real
   emitirCambioEstado(pedido);
@@ -214,6 +282,17 @@ export const cambiarEstado = async (id, estado) => {
   return pedido;
 };
 
-export const registrarPago = async (pedido_id, { metodo, monto }) =>
-  prisma.pago.create({ data: { pedido_id, metodo, monto } });
+export const registrarPago = async (pedido_id, { metodo, monto }) => {
+  if (!METODOS_PAGO_VALIDOS.includes(metodo)) {
+    throw { status: 400, message: `Método de pago inválido. Permitidos: ${METODOS_PAGO_VALIDOS.join(', ')}` };
+  }
+  const ped = await prisma.pedido.findUniqueOrThrow({
+    where: { id: pedido_id },
+    select: { id: true, estado: true },
+  });
+  if (ped.estado === 'CANCELADO') {
+    throw { status: 400, message: 'No se puede registrar un pago para un pedido cancelado' };
+  }
+  return prisma.pago.create({ data: { pedido_id, metodo, monto } });
+};
 

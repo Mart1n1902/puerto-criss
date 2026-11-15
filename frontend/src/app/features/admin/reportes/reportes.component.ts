@@ -272,9 +272,13 @@ export class ReportesComponent implements OnInit, AfterViewInit {
 
   colores = ['#06b6d4', '#f97316', '#ef4444', '#22c55e', '#8b5cf6', '#f59e0b', '#64748b'];
 
+  private toLocalDateStr(d: Date = new Date()): string {
+    return d.toLocaleDateString('en-CA');
+  }
+
   filtro = {
     desde: this.inicioMes(),
-    hasta: new Date().toISOString().split('T')[0],
+    hasta: this.toLocalDateStr(),
   };
 
   private charts: Record<string, Chart> = {};
@@ -423,13 +427,13 @@ export class ReportesComponent implements OnInit, AfterViewInit {
     }
 
     const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([buf]), `reporte-puerto-criss-${new Date().toISOString().split('T')[0]}.xlsx`);
+    saveAs(new Blob([buf]), `reporte-puerto-criss-${this.toLocalDateStr()}.xlsx`);
   }
 
   descargarVentasDetalladasCSV() {
     this.reportesService.exportarCSV(this.filtro.desde, this.filtro.hasta).subscribe({
       next: (blob) => {
-        saveAs(blob, `pedidos-detallados-puerto-criss-${new Date().toISOString().split('T')[0]}.csv`);
+        saveAs(blob, `pedidos-detallados-puerto-criss-${this.toLocalDateStr()}.csv`);
       },
       error: () => {},
     });
@@ -438,7 +442,7 @@ export class ReportesComponent implements OnInit, AfterViewInit {
   inicioMes(): string {
     const d = new Date();
     d.setDate(1);
-    return d.toISOString().split('T')[0];
+    return this.toLocalDateStr(d);
   }
 
   generarResumen() {

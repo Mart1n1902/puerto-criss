@@ -1,29 +1,32 @@
 import prisma from '../prisma/client.js';
 
-const inicioDia = (fecha = new Date()) => {
-  const d = new Date(fecha);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
+// Lima, Perú es UTC-5 todo el año (sin horario de verano)
+const getLimaDateStr = (fecha = new Date()) =>
+  new Date(fecha).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
-const finDia = (fecha = new Date()) => {
-  const d = new Date(fecha);
-  d.setHours(23, 59, 59, 999);
-  return d;
-};
+const inicioDia = (fecha = new Date()) =>
+  new Date(`${getLimaDateStr(fecha)}T00:00:00.000-05:00`);
+
+const finDia = (fecha = new Date()) =>
+  new Date(`${getLimaDateStr(fecha)}T23:59:59.999-05:00`);
 
 const inicioSemana = (fecha = new Date()) => {
-  const d = new Date(fecha);
-  const dia = d.getDay();
-  d.setDate(d.getDate() - (dia === 0 ? 6 : dia - 1));
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const limaBase = inicioDia(fecha);
+  const dia = new Date(limaBase.getTime() - 5 * 60 * 60 * 1000).getUTCDay();
+  const diff = dia === 0 ? 6 : dia - 1;
+  return new Date(limaBase.getTime() - diff * 24 * 60 * 60 * 1000);
 };
 
 const inicioMes = (fecha = new Date()) => {
-  const d = new Date(fecha);
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
+  const [anio, mes] = getLimaDateStr(fecha).split('-');
+  return new Date(`${anio}-${mes}-01T00:00:00.000-05:00`);
+};
+
+const parseFechaValida = (raw, campo) => {
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    throw { status: 400, message: `Fecha inválida en '${campo}'` };
+  }
   return d;
 };
 
@@ -197,7 +200,7 @@ export const getComparativaSemanal = async (semanas = 4) => {
 export const getGastosPorCategoria = async (desde, hasta) => {
   const movs = await prisma.movimientoCaja.findMany({
     where: {
-      createdAt: { gte: new Date(desde), lte: new Date(hasta) },
+      createdAt: { gte: parseFechaValida(desde, 'desde'), lte: parseFechaValida(hasta, 'hasta') },
     },
     include: { categoria_movimiento: true },
   });
@@ -225,9 +228,9 @@ export const exportarVentasCSV = async ({ desde, hasta } = {}) => {
   const where = { estado: { not: 'CANCELADO' } };
   if (desde || hasta) {
     where.createdAt = {};
-    if (desde) where.createdAt.gte = new Date(desde);
+    if (desde) where.createdAt.gte = parseFechaValida(desde, 'desde');
     if (hasta) {
-      const h = new Date(hasta);
+      const h = parseFechaValida(hasta, 'hasta');
       h.setHours(23, 59, 59, 999);
       where.createdAt.lte = h;
     }

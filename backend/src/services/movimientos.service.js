@@ -7,14 +7,25 @@ export const getBySesion = (sesion_caja_id) =>
     orderBy: { createdAt: 'desc' },
   });
 
-export const getByRango = (desde, hasta) =>
-  prisma.movimientoCaja.findMany({
+const parseFecha = (raw, nombreCampo) => {
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    throw { status: 400, message: `Fecha inválida en '${nombreCampo}'` };
+  }
+  return d;
+};
+
+export const getByRango = (desde, hasta) => {
+  const fechaDesde = parseFecha(desde, 'desde');
+  const fechaHasta = parseFecha(hasta, 'hasta');
+  return prisma.movimientoCaja.findMany({
     where: {
-      createdAt: { gte: new Date(desde), lte: new Date(hasta) },
+      createdAt: { gte: fechaDesde, lte: fechaHasta },
     },
     include: { categoria_movimiento: true, sesion_caja: { select: { fecha_apertura: true } } },
     orderBy: { createdAt: 'desc' },
   });
+};
 
 export const create = (data) =>
   prisma.movimientoCaja.create({
@@ -24,7 +35,7 @@ export const create = (data) =>
       monto: data.monto,
       descripcion: data.descripcion,
       // Si viene fecha personalizada la usamos, sino la actual
-      createdAt: data.fecha ? new Date(data.fecha) : new Date(),
+      createdAt: data.fecha ? parseFecha(data.fecha, 'fecha') : new Date(),
     },
     include: { categoria_movimiento: true },
   });
