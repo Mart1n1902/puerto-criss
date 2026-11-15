@@ -15,10 +15,19 @@ import { Subscription } from 'rxjs';
   template: `
     <!-- Banner de Mesa Asignada vía QR -->
     @if (carrito.mesaQR()) {
-      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 shadow-md flex items-center justify-between sticky top-16 z-30">
-        <div class="flex items-center gap-2 text-xs sm:text-sm font-bold max-w-2xl mx-auto w-full">
-          <span class="text-xl">📍</span>
-          <span>Estás en la <strong>Mesa {{ carrito.mesaQR() }}</strong> · Tu orden irá directo a tu mesa</span>
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 shadow-md sticky top-16 z-30">
+        <div class="flex items-center justify-between gap-2 text-xs sm:text-sm font-bold max-w-2xl mx-auto w-full">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">📍</span>
+            <span>Estás en la <strong>Mesa {{ carrito.mesaQR() }}</strong> · Tu orden irá directo a tu mesa</span>
+          </div>
+          <button
+            type="button"
+            (click)="carrito.fijarMesaQR(null)"
+            class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-2.5 py-1 rounded-lg transition-colors flex-shrink-0"
+          >
+            Salir de mesa
+          </button>
         </div>
       </div>
     }

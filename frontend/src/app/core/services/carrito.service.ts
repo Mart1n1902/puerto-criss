@@ -20,8 +20,9 @@ export class CarritoService {
   fijarMesaQR(numeroMesa: string | null) {
     this._mesaQR.set(numeroMesa);
     if (numeroMesa) {
-      localStorage.setItem('puerto_criss_mesa_qr', numeroMesa);
+      sessionStorage.setItem('puerto_criss_mesa_qr', numeroMesa);
     } else {
+      sessionStorage.removeItem('puerto_criss_mesa_qr');
       localStorage.removeItem('puerto_criss_mesa_qr');
     }
   }
@@ -67,6 +68,7 @@ export class CarritoService {
   limpiar() {
     this._items.set([]);
     localStorage.removeItem('carrito');
+    this.fijarMesaQR(null);
   }
 
   private guardarStorage() {
@@ -84,7 +86,7 @@ export class CarritoService {
 
   private cargarMesaQRStorage(): string | null {
     try {
-      return localStorage.getItem('puerto_criss_mesa_qr') || null;
+      return sessionStorage.getItem('puerto_criss_mesa_qr') || null;
     } catch {
       return null;
     }

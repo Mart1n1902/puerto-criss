@@ -43,10 +43,17 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         @if (carrito.mesaQR()) {
           <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 mb-4 flex items-center gap-3 text-emerald-900">
             <span class="text-2xl">📍</span>
-            <div>
+            <div class="flex-1">
               <p class="font-bold text-sm">Pedido para Mesa {{ carrito.mesaQR() }}</p>
               <p class="text-xs text-emerald-700">Detectamos tu mesa automáticamente por código QR.</p>
             </div>
+            <button
+              type="button"
+              (click)="salirDeMesaQR()"
+              class="text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition-colors"
+            >
+              Cambiar
+            </button>
           </div>
         }
 
@@ -325,6 +332,12 @@ export class CarritoComponent implements OnInit, OnDestroy {
   seleccionarTipo(nuevoTipo: TipoPedido) {
     if (this.carrito.mesaQR()) return;
     this.tipo = nuevoTipo;
+  }
+
+  salirDeMesaQR() {
+    this.carrito.fijarMesaQR(null);
+    this.mesaId = null;
+    this.tipo = 'RECOJO';
   }
 
   verificarMesaQR() {
